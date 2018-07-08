@@ -1,0 +1,27 @@
+_ChangelogURI: http://changelogs.parrotsec.org/changelogs/%s/%s/%s/%s_%s/changelog
+
+Suite: stable
+RepositoryType: deb
+BaseURI: http://deb.parrotsec.org/parrot/
+MatchURI: deb.parrotsec.org/parrot
+MirrorsFile: Parrot.mirrors
+_Description: Stable Repository for Parrot OS
+Component: main
+_CompDescription: Officially supported
+Component: contrib
+_CompDescription: DFSG-compatible Software with Non-Free Dependencies
+Component: non-free
+_CompDescription: Non-DFSG-compatible Software
+
+Suite: testing
+RepositoryType: deb
+BaseURI: http://deb.parrotsec.org/parrot/
+MatchURI: deb.parrotsec.org/parrot
+MirrorsFile: Parrot.mirrors
+_Description: Testing Repository for Parrot OS
+Component: main
+_CompDescription: Officially supported
+Component: contrib
+_CompDescription: DFSG-compatible Software with Non-Free Dependencies
+Component: non-free
+_CompDescription: Non-DFSG-compatible Software
