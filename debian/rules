@@ -32,10 +32,10 @@ override_dh_installdocs:
 		python setup.py build_sphinx; \
 		dh_installdirs -ppython-apt-doc usr/share/doc/python-apt; \
 	fi
-	dh_installdirs -ppython-apt-dev usr/share/doc/python-apt
-	dh_installdocs -p python-apt -p python-apt-dbg --link-doc=python-apt
-	dh_installdocs -p python3-apt -p python3-apt-dbg --link-doc=python3-apt
-	dh_installdocs --remaining-packages
+	dh_installdirs -ppython-apt-dev usr/share/doc/python-apt || true
+	dh_installdocs -p python-apt -p python-apt-dbg --link-doc=python-apt || true
+	dh_installdocs -p python3-apt -p python3-apt-dbg --link-doc=python3-apt || true
+	dh_installdocs --remaining-packages || true
 
 override_dh_strip:
 	dh_strip -p python-apt --dbg-package=python-apt-dbg
