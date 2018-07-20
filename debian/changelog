@@ -1,3 +1,9 @@
+python-apt (1.6.2+parrot0) testing; urgency=medium
+
+  * Import new Debian version.
+
+ -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sat, 21 Jul 2018 00:28:10 +0200
+
 python-apt (1.6.2) unstable; urgency=medium
 
   * Introduce gitlab ci
@@ -8,6 +14,13 @@ python-apt (1.6.2) unstable; urgency=medium
   * debian/control: Point to salsa instead of anonscm
 
  -- Julian Andres Klode <jak@debian.org>  Mon, 09 Jul 2018 15:37:51 +0200
+
+python-apt (1.6.1+parrot0) testing; urgency=medium
+
+  * Non-maintainer upload.
+  * Add Parrot support.
+
+ -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 08 Jul 2018 17:29:51 +0200
 
 python-apt (1.6.1) unstable; urgency=medium
 
