@@ -29,13 +29,13 @@ override_dh_sphinxdoc:
 
 override_dh_installdocs:
 	set -e; if [ -z $(filter -a,$(DH_INTERNAL_OPTIONS)) ]; then \
-		python setup.py build_sphinx; \
+		python3 setup.py build_sphinx; \
 		dh_installdirs -ppython-apt-doc usr/share/doc/python-apt; \
 	fi
-	dh_installdirs -ppython-apt-dev usr/share/doc/python-apt || true
-	dh_installdocs -p python-apt -p python-apt-dbg --link-doc=python-apt || true
-	dh_installdocs -p python3-apt -p python3-apt-dbg --link-doc=python3-apt || true
-	dh_installdocs --remaining-packages || true
+	dh_installdirs -ppython-apt-dev usr/share/doc/python-apt
+	dh_installdocs -p python-apt -p python-apt-dbg --link-doc=python-apt
+	dh_installdocs -p python3-apt -p python3-apt-dbg --link-doc=python3-apt
+	dh_installdocs --remaining-packages
 
 override_dh_strip:
 	dh_strip -p python-apt --dbg-package=python-apt-dbg

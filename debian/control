@@ -11,22 +11,20 @@ Build-Depends: apt (>= 1.0.9.4),
                debhelper (>= 9),
                dh-python,
                fakeroot,
-               libapt-pkg-dev (>= 1.4~beta3),
+               libapt-pkg-dev (>= 1.7~alpha2ubuntu1~),
                python-all-dev (>= 2.7),
                python-all-dbg,
                python3-all-dev (>= 3.3),
                python3-all-dbg (>= 3.3),
                python3-distutils | python3 (<< 3.6) | python3.6 (<< 3.6.4~rc1-2),
                python-distutils-extra (>= 2.0),
-               python3-distutils-extra,
-               python-sphinx (>= 0.5),
-               python3-sphinx,
+               python3-sphinx (>= 0.5),
                gnupg,
                dirmngr | gnupg (<< 2),
                pep8,
                pyflakes
-Vcs-Git: https://anonscm.debian.org/git/apt/python-apt.git
-Vcs-Browser: https://anonscm.debian.org/git/apt/python-apt.git
+Vcs-Git: https://salsa.debian.org/apt-team/python-apt.git
+Vcs-Browser: https://salsa.debian.org/apt-team/python-apt
 
 Package: python-apt
 Architecture: any

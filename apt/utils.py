@@ -18,12 +18,26 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 from __future__ import print_function
 
+import datetime
 import os
 
+try:
+    from typing import Optional, Tuple
+    Optional  # pyflakes
+    Tuple  # pyflakes
+except ImportError:
+    pass
+
+import apt
 import apt_pkg
+
+apt  # pyflakes
+datetime  # pyflakes
+os  # pyflakes
 
 
 def get_maintenance_end_date(release_date, m_months):
+    # type: (datetime.datetime, int) -> Tuple[int, int]
     """
     get the (year, month) tuple when the maintenance for the distribution
     ends. Needs the data of the release and the number of months that
@@ -43,6 +57,7 @@ def get_maintenance_end_date(release_date, m_months):
 
 
 def get_release_date_from_release_file(path):
+    # type: (str) -> Optional[int]
     """
     return the release date as time_t for the given release file
     """
@@ -59,6 +74,7 @@ def get_release_date_from_release_file(path):
 
 
 def get_release_filename_for_pkg(cache, pkgname, label, release):
+    # type: (apt.Cache, str, str, str) -> Optional[str]
     " get the release file that provides this pkg "
     if pkgname not in cache:
         return None

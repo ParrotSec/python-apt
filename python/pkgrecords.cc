@@ -180,6 +180,37 @@ static PyGetSetDef PkgRecordsGetSet[] = {
    {}
 };
 
+static int PkgRecordsContains(PyObject *Self,PyObject *Arg)
+{
+   PkgRecordsStruct &Struct = GetStruct(Self,"__contains__");
+   if (Struct.Last == nullptr)
+      return -1;
+   const char *Name = PyObject_AsString(Arg);
+
+   if (Name == nullptr)
+      return -1;
+
+   return !Struct.Last->RecordField(Name).empty();
+}
+
+static PyObject *PkgRecordsMap(PyObject *Self,PyObject *Arg)
+{
+   PkgRecordsStruct &Struct = GetStruct(Self,"__contains__");
+   if (Struct.Last == nullptr)
+      return nullptr;
+
+   const char *Name = PyObject_AsString(Arg);
+   if (Name == nullptr)
+      return nullptr;
+
+   return CppPyString(Struct.Last->RecordField(Name));
+}
+
+
+
+PySequenceMethods PkgRecordsSeqMeth = {0,0,0,0,0,0,0,PkgRecordsContains,0,0};
+PyMappingMethods PkgRecordsMapMeth = {0,PkgRecordsMap,0};
+
 static PyObject *PkgRecordsNew(PyTypeObject *type,PyObject *Args,PyObject *kwds)
 {
    PyObject *Owner;
@@ -213,8 +244,8 @@ PyTypeObject PyPackageRecords_Type =
    0,                                   // tp_compare
    0,                                   // tp_repr
    0,                                   // tp_as_number
-   0,                                   // tp_as_sequence
-   0,                                   // tp_as_mapping
+   &PkgRecordsSeqMeth,                  // tp_as_sequence
+   &PkgRecordsMapMeth,                  // tp_as_mapping
    0,                                   // tp_hash
    0,                                   // tp_call
    0,                                   // tp_str

@@ -38,14 +38,19 @@ static PyObject *policy_new(PyTypeObject *type,PyObject *Args,
 }
 
 static char *policy_get_priority_doc =
-    "get_priority(package: apt_pkg.Package) -> int\n\n"
+    "get_priority(package: Union[apt_pkg.Package, apt_pkg.Version, apt_pkg.PackageFile]) -> int\n\n"
     "Return the priority of the package.";
 
 PyObject *policy_get_priority(PyObject *self, PyObject *arg) {
     pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
     if (PyObject_TypeCheck(arg, &PyPackage_Type)) {
+        if (PyErr_WarnEx(PyExc_DeprecationWarning, "Passing apt_pkg.Package to Policy.get_priority() is deprecated, pass a version instead.", 1) == -1)
+            return NULL;
         pkgCache::PkgIterator pkg = GetCpp<pkgCache::PkgIterator>(arg);
         return MkPyNumber(policy->GetPriority(pkg));
+    } else if (PyObject_TypeCheck(arg, &PyVersion_Type)) {
+        auto ver = GetCpp<pkgCache::VerIterator>(arg);
+        return MkPyNumber(policy->GetPriority(ver));
     } else if (PyObject_TypeCheck(arg, &PyPackageFile_Type)) {
         pkgCache::PkgFileIterator pkgfile = GetCpp<pkgCache::PkgFileIterator>(arg);
         return MkPyNumber(policy->GetPriority(pkgfile));

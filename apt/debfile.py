@@ -26,6 +26,20 @@ import gzip
 import os
 import sys
 
+try:
+    from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, cast
+    Dict  # pyflakes
+    Iterable  # pyflakes
+    List  # pyflakes
+    Optional  # pyflakes
+    Set  # pyflakes
+    Tuple  # pyflakes
+    Union  # pyflakes
+except ImportError:
+    def cast(typ, obj):  # type: ignore
+        return obj
+    pass
+
 from apt_pkg import gettext as _
 from io import BytesIO
 
@@ -47,24 +61,27 @@ class DebPackage(object):
     debug = 0
 
     def __init__(self, filename=None, cache=None):
+        # type: (str, apt.Cache) -> None
         if cache is None:
             cache = apt.Cache()
         self._cache = cache
-        self._debfile = None
+        self._debfile = cast(apt_inst.DebFile, None)
         self.pkgname = ""
-        self._sections = {}
-        self._need_pkgs = []
+        self.filename = None  # type: Optional[str]
+        self._sections = {}  # type: Union[Dict[str, str], apt_pkg.TagSection]
+        self._need_pkgs = []  # type: List[str]
         self._check_was_run = False
         self._failure_string = ""
-        self._multiarch = None
+        self._multiarch = None  # type: Optional[str]
         if filename:
             self.open(filename)
 
     def open(self, filename):
+        # type: (str) -> None
         """ open given debfile """
         self._dbg(3, "open '%s'" % filename)
-        self._need_pkgs = []
-        self._installed_conflicts = set()
+        self._need_pkgs = []  # type: List[str]
+        self._installed_conflicts = set()  # type: Set[str]
         self._failure_string = ""
         self.filename = filename
         self._debfile = apt_inst.DebFile(self.filename)
@@ -74,13 +91,16 @@ class DebPackage(object):
         self._check_was_run = False
 
     def __getitem__(self, key):
+        # type: (str) -> str
         return self._sections[key]
 
     def __contains__(self, key):
+        # type: (str) -> bool
         return key in self._sections
 
     @property
     def filelist(self):
+        # type: () -> List[str]
         """return the list of files in the deb."""
         files = []
         try:
@@ -92,6 +112,7 @@ class DebPackage(object):
 
     @property
     def control_filelist(self):
+        # type: () -> List[str]
         """ return the list of files in control.tar.gz """
         control = []
         try:
@@ -105,6 +126,7 @@ class DebPackage(object):
     # helper that will return a pkgname with a multiarch suffix if needed
     def _maybe_append_multiarch_suffix(self, pkgname,
                                        in_conflict_checking=False):
+        # type: (str, bool) -> str
         # trivial cases
         if ":" in pkgname:
             return pkgname
@@ -113,16 +135,20 @@ class DebPackage(object):
         elif self._cache.is_virtual_package(pkgname):
             return pkgname
         elif (pkgname in self._cache and
-              self._cache[pkgname].candidate and
-              self._cache[pkgname].candidate.architecture == "all"):
+              self._cache[pkgname].candidate is not None and
+              cast(apt.package.Version,
+                   self._cache[pkgname].candidate).architecture == "all"):
             return pkgname
         # now do the real multiarch checking
         multiarch_pkgname = "%s:%s" % (pkgname, self._multiarch)
         # the upper layers will handle this
         if multiarch_pkgname not in self._cache:
             return multiarch_pkgname
+        multiarch_pkg = self._cache[multiarch_pkgname]
+        if multiarch_pkg.candidate is None:
+            return multiarch_pkgname
         # now check the multiarch state
-        cand = self._cache[multiarch_pkgname].candidate._cand
+        cand = multiarch_pkg.candidate._cand
         #print pkgname, multiarch_pkgname, cand.multi_arch
         # the default is to add the suffix, unless its a pkg that can satify
         # foreign dependencies
@@ -136,6 +162,7 @@ class DebPackage(object):
         return multiarch_pkgname
 
     def _is_or_group_satisfied(self, or_group):
+        # type: (List[Tuple[str, str, str]]) -> bool
         """Return True if at least one dependency of the or-group is satisfied.
 
         This method gets an 'or_group' and analyzes if at least one dependency
@@ -182,6 +209,7 @@ class DebPackage(object):
         return False
 
     def _satisfy_or_group(self, or_group):
+        # type: (List[Tuple[str, str, str]]) -> bool
         """Try to satisfy the or_group."""
         for dep in or_group:
             depname, ver, oper = dep
@@ -227,6 +255,7 @@ class DebPackage(object):
         return False
 
     def _check_single_pkg_conflict(self, pkgname, ver, oper):
+        # type: (str, str, str) -> bool
         """Return True if a pkg conflicts with a real installed/marked pkg."""
         # FIXME: deal with conflicts against its own provides
         #        (e.g. Provides: ftp-server, Conflicts: ftp-server)
@@ -235,8 +264,10 @@ class DebPackage(object):
                 pkgname, ver, oper))
         pkg = self._cache[pkgname]
         if pkg.is_installed:
+            assert pkg.installed is not None
             pkgver = pkg.installed.version
         elif pkg.marked_install:
+            assert pkg.candidate is not None
             pkgver = pkg.candidate.version
         else:
             return False
@@ -253,6 +284,7 @@ class DebPackage(object):
         return False
 
     def _check_conflicts_or_group(self, or_group):
+        # type: (List[Tuple[str, str, str]]) -> bool
         """Check the or-group for conflicts with installed pkgs."""
         self._dbg(2, "_check_conflicts_or_group(): %s " % (or_group))
         for dep in or_group:
@@ -286,7 +318,8 @@ class DebPackage(object):
 
     @property
     def conflicts(self):
-        """List of package names conflicting with this package."""
+        # type: () -> List[List[Tuple[str, str, str]]]
+        """List of packages conflicting with this package."""
         key = "Conflicts"
         try:
             return apt_pkg.parse_depends(self._sections[key], False)
@@ -295,7 +328,8 @@ class DebPackage(object):
 
     @property
     def depends(self):
-        """List of package names on which this package depends on."""
+        # type: () -> List[List[Tuple[str, str, str]]]
+        """List of packages on which this package depends on."""
         depends = []
         # find depends
         for key in "Depends", "Pre-Depends":
@@ -308,6 +342,7 @@ class DebPackage(object):
 
     @property
     def provides(self):
+        # type: () -> List[List[Tuple[str, str, str]]]
         """List of virtual packages which are provided by this package."""
         key = "Provides"
         try:
@@ -317,6 +352,7 @@ class DebPackage(object):
 
     @property
     def replaces(self):
+        # type: () -> List[List[Tuple[str, str, str]]]
         """List of packages which are replaced by this package."""
         key = "Replaces"
         try:
@@ -325,6 +361,7 @@ class DebPackage(object):
             return []
 
     def replaces_real_pkg(self, pkgname, oper, ver):
+        # type: (str, str, str) -> bool
         """Return True if a given non-virtual package is replaced.
 
         Return True if the deb packages replaces a real (not virtual)
@@ -332,21 +369,26 @@ class DebPackage(object):
         """
         self._dbg(3, "replaces_real_pkg() %s %s %s" % (pkgname, oper, ver))
         pkg = self._cache[pkgname]
+        pkgver = None  # type: Optional[str]
         if pkg.is_installed:
+            assert pkg.installed is not None
             pkgver = pkg.installed.version
         elif pkg.marked_install:
+            assert pkg.candidate is not None
             pkgver = pkg.candidate.version
         else:
             pkgver = None
         for or_group in self.replaces:
             for (name, ver, oper) in or_group:
-                if (name == pkgname and apt_pkg.check_dep(pkgver, oper, ver)):
+                if (name == pkgname and (pkgver is None or
+                        apt_pkg.check_dep(pkgver, oper, ver))):
                     self._dbg(3, "we have a replaces in our package for the "
                                  "conflict against '%s'" % (pkgname))
                     return True
         return False
 
     def check_conflicts(self):
+        # type: () -> bool
         """Check if there are conflicts with existing or selected packages.
 
         Check if the package conflicts with a existing or to be installed
@@ -361,6 +403,7 @@ class DebPackage(object):
         return res
 
     def check_breaks_existing_packages(self):
+        # type: () -> bool
         """
         check if installing the package would break exsisting
         package on the system, e.g. system has:
@@ -379,6 +422,7 @@ class DebPackage(object):
                 self._cache.op_progress.update(float(i) / size * 100.0)
             if not pkg.is_installed:
                 continue
+            assert pkg.installed is not None
             # check if the exising dependencies are still satisfied
             # with the package
             ver = pkg._pkg.current_ver
@@ -448,6 +492,7 @@ class DebPackage(object):
         return True
 
     def compare_to_version_in_cache(self, use_installed=True):
+        # type: (bool) -> int
         """Compare the package to the version available in the cache.
 
         Checks if the package is already installed or availabe in the cache
@@ -464,10 +509,11 @@ class DebPackage(object):
         debver = self._sections["Version"]
         self._dbg(1, "debver: %s" % debver)
         if pkgname in self._cache:
-            if use_installed and self._cache[pkgname].installed:
-                cachever = self._cache[pkgname].installed.version
-            elif not use_installed and self._cache[pkgname].candidate:
-                cachever = self._cache[pkgname].candidate.version
+            pkg = self._cache[pkgname]
+            if use_installed and pkg.installed is not None:
+                cachever = pkg.installed.version
+            elif not use_installed and pkg.candidate is not None:
+                cachever = pkg.candidate.version
             else:
                 return self.VERSION_NONE
             if cachever is not None:
@@ -482,6 +528,7 @@ class DebPackage(object):
         return self.VERSION_NONE
 
     def check(self, allow_downgrade=False):
+        # type: (bool) -> bool
         """Check if the package is installable."""
         self._dbg(3, "check")
 
@@ -544,10 +591,12 @@ class DebPackage(object):
         return True
 
     def satisfy_depends_str(self, dependsstr):
+        # type: (str) -> bool
         """Satisfy the dependencies in the given string."""
         return self._satisfy_depends(apt_pkg.parse_depends(dependsstr, False))
 
     def _satisfy_depends(self, depends):
+        # type: (List[List[Tuple[str, str, str]]]) -> bool
         """Satisfy the dependencies."""
         # turn off MarkAndSweep via a action group (if available)
         try:
@@ -572,6 +621,7 @@ class DebPackage(object):
 
     @property
     def missing_deps(self):
+        # type: () -> List[str]
         """Return missing dependencies."""
         self._dbg(1, "Installing: %s" % self._need_pkgs)
         if not self._check_was_run:
@@ -581,6 +631,7 @@ class DebPackage(object):
 
     @property
     def required_changes(self):
+        # type: () -> Tuple[List[str], List[str], List[str]]
         """Get the changes required to satisfy the dependencies.
 
         Returns: a tuple with (install, remove, unauthenticated)
@@ -593,6 +644,7 @@ class DebPackage(object):
                 "property only available after check() was run")
         for pkg in self._cache:
             if pkg.marked_install or pkg.marked_upgrade:
+                assert pkg.candidate is not None
                 install.append(pkg.name)
                 # check authentication, one authenticated origin is enough
                 # libapt will skip non-authenticated origins then
@@ -607,6 +659,7 @@ class DebPackage(object):
 
     @staticmethod
     def to_hex(in_data):
+        # type: (str) -> str
         hex = ""
         for (i, c) in enumerate(in_data):
             if i % 80 == 0:
@@ -616,9 +669,10 @@ class DebPackage(object):
 
     @staticmethod
     def to_strish(in_data):
+        # type: (Union[str, Iterable[int]]) -> str
         s = ""
         # py2 compat, in_data is type string
-        if type(in_data) == str:
+        if isinstance(in_data, str):
             for c in in_data:
                 if ord(c) < 10 or ord(c) > 127:
                     s += " "
@@ -634,6 +688,7 @@ class DebPackage(object):
         return s
 
     def _get_content(self, part, name, auto_decompress=True, auto_hex=True):
+        # type: (apt_inst.TarFile, str, bool, bool) -> str
         if name.startswith("./"):
             name = name[2:]
         data = part.extractdata(name)
@@ -645,14 +700,14 @@ class DebPackage(object):
             data += gz.read()
         # auto-convert to hex
         try:
-            data = data.decode("utf-8")
+            return data.decode("utf-8")
         except Exception:
             new_data = _("Automatically converted to printable ascii:\n")
             new_data += self.to_strish(data)
             return new_data
-        return data
 
     def control_content(self, name):
+        # type: (str) -> str
         """ return the content of a specific control.tar.gz file """
         try:
             return self._get_content(self._debfile.control, name)
@@ -660,6 +715,7 @@ class DebPackage(object):
             return ""
 
     def data_content(self, name):
+        # type: (str) -> str
         """ return the content of a specific control.tar.gz file """
         try:
             return self._get_content(self._debfile.data, name)
@@ -667,24 +723,28 @@ class DebPackage(object):
             return ""
 
     def _dbg(self, level, msg):
+        # type: (int, str) -> None
         """Write debugging output to sys.stderr."""
         if level <= self.debug:
             print(msg, file=sys.stderr)
 
     def install(self, install_progress=None):
+        # type: (apt.progress.base.InstallProgress) -> int
         """Install the package."""
+        if self.filename is None:
+            raise apt_pkg.Error("No filename specified")
         if install_progress is None:
             return os.spawnlp(os.P_WAIT, "dpkg", "dpkg", "-i", self.filename)
         else:
             try:
                 install_progress.start_update()
             except AttributeError:
-                install_progress.startUpdate()
+                install_progress.startUpdate()  # type: ignore
             res = install_progress.run(self.filename)
             try:
                 install_progress.finish_update()
             except AttributeError:
-                install_progress.finishUpdate()
+                install_progress.finishUpdate()  # type: ignore
             return res
 
 
@@ -692,33 +752,39 @@ class DscSrcPackage(DebPackage):
     """A locally available source package."""
 
     def __init__(self, filename=None, cache=None):
+        # type: (str, apt.Cache) -> None
         DebPackage.__init__(self, None, cache)
-        self.filename = filename
-        self._depends = []
-        self._conflicts = []
-        self._installed_conflicts = set()
+        self.filename = filename  # type: Optional[str]
+        self._depends = []  # type: List[List[Tuple[str, str, str]]]
+        self._conflicts = []  # type: List[List[Tuple[str, str, str]]]
+        self._installed_conflicts = set()  # type: Set[str]
         self.pkgname = ""
-        self.binaries = []
+        self.binaries = []  # type: List[str]
+        self._sections = {}  # type: Dict[str, str]
         if self.filename is not None:
             self.open(self.filename)
 
     @property
     def depends(self):
+        # type: () -> List[List[Tuple[str, str, str]]]
         """Return the dependencies of the package"""
         return self._depends
 
     @property
     def conflicts(self):
+        # type: () -> List[List[Tuple[str, str, str]]]
         """Return the dependencies of the package"""
         return self._conflicts
 
     @property
     def filelist(self):
+        # type: () -> List[str]
         """Return the list of files associated with this dsc file"""
         # Files stanza looks like (hash, size, filename, ...)
         return self._sections['Files'].split()[2::3]
 
     def open(self, file):
+        # type: (str) -> None
         """Open the package."""
         depends_tags = ["Build-Depends", "Build-Depends-Indep"]
         conflicts_tags = ["Build-Conflicts", "Build-Conflicts-Indep"]
@@ -753,8 +819,12 @@ class DscSrcPackage(DebPackage):
         self._sections["Description"] = s
         self._check_was_run = False
 
-    def check(self):
-        """Check if the package is installable.."""
+    def check(self, allow_downgrade=False):
+        # type: (bool) -> bool
+        """Check if the package is installable.
+
+        The second parameter is ignored and only exists for compatibility
+        with parent type."""
         if not self.check_conflicts():
             for pkgname in self._installed_conflicts:
                 if self._cache[pkgname]._pkg.essential:
@@ -768,6 +838,7 @@ class DscSrcPackage(DebPackage):
 
 
 def _test():
+    # type: () -> None
     """Test function"""
     from apt.cache import Cache
     from apt.progress.base import InstallProgress
@@ -801,8 +872,8 @@ def _test():
     #print "Print required changes: ", s.requiredChanges
 
     s = DscSrcPackage(cache=cache)
-    d = "libc6 (>= 2.3.2), libaio (>= 0.3.96) | libaio1 (>= 0.3.96)"
-    print(s._satisfy_depends(apt_pkg.parse_depends(d, False)))
+    ds = "libc6 (>= 2.3.2), libaio (>= 0.3.96) | libaio1 (>= 0.3.96)"
+    print(s._satisfy_depends(apt_pkg.parse_depends(ds, False)))
 
 
 if __name__ == "__main__":

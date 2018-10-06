@@ -1151,9 +1151,15 @@ Package Pinning with :class:`Policy`
 
         Get a version for the package.
 
-    .. method:: get_priority(package: apt_pkg.Package) -> int
+    .. method:: get_priority(package: Union[apt_pkg.Package, apt_pkg.Version, apt_pkg.PackageFile]) -> int
 
-        Get the pin priority of the package given by *package*.
+        Get the pin priority of the package, version, or package file
+        given by *package*.
+
+        .. versionchanged:: 1.7
+
+            Introduce support for per-version pins. Deprecated support
+            for :class:`apt_pkg.Package`.
 
     .. method:: read_pindir(dirname: str) -> bool
 
@@ -1356,6 +1362,21 @@ Records (Release files, Packages, Sources)
             # Now you can access the record
             print(records.source_pkg) # == python-apt
 
+    .. describe:: section[key]
+
+        Return the value of the field at *key*. If *key* is not available,
+        raise :exc:`KeyError`.
+        Raises AttributeError if not yet looked up.
+
+        .. versionadded:: 1.7
+
+    .. describe:: key in section
+
+        Return ``True`` if *section* has a key *key*, else ``False``.
+        Raises AttributeError if not yet looked up.
+
+      .. versionadded:: 1.7
+
     .. attribute:: filename
 
         Return the field 'Filename' of the record. This is the path to the
@@ -1435,6 +1456,11 @@ Records (Release files, Packages, Sources)
         the record not available as an attribute, you can use
         :class:`apt_pkg.TagSection` to parse the record and access the field
         name.
+
+        .. deprecated:: 1.7
+
+            This property can be considered deprecated for simple string
+            lookups, as keys can now be looked up in the record itself.
 
         Example::
 
@@ -2497,6 +2523,35 @@ following three functions:
 
     Unlock the global pkgsystem. This reverts the effect of
     :func:`pkgsystem_lock`.
+
+Since version 1.7, APT switches to the frontend locking approach where
+dpkg has two lock files, :file:`lock-frontend` and :file:`lock`, the
+latter being called the inner lock in apt.
+When running dpkg, the inner lock must be released before calling dpkg
+and reacquired afterwards. When not using APT functions to run dpkg,
+the variable `DPKG_FRONTEND_LOCKED` must be set to tell dpkg to not
+acquire the :file:`lock-frontend` lock.
+These functions usually do not need to be used by external code.
+
+.. function:: pkgsystem_unlock_inner()
+
+    Release the :file:`lock` lock file to allow dpkg to be run.
+
+    .. versionadded:: 1.7
+
+.. function:: pkgsystem_lock_inner()
+
+    Release the :file:`lock` lock file after a dpkg run.
+
+    .. versionadded:: 1.7
+
+.. function:: pkgsystem_is_locked()
+
+    Returns true if the global lock is hold. Can be used to check whether
+    :meth:`pkgsystem_unlock_inner` needs to be called.
+
+    .. versionadded:: 1.7
+
 
 
 Other classes

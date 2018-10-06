@@ -74,9 +74,10 @@ except KeyError:
                stdout=PIPE)
     p2 = Popen(["sed", "-n", 's/^Version: //p'], stdin=p1.stdout, stdout=PIPE)
     release = p2.communicate()[0]
+    if sys.version_info.major >= 3:
+        release = release.decode("utf-8")
 
-if sys.version_info.major >= 3:
-    release = release.decode("utf-8")
+
 # Handle the alpha release scheme
 release_raw = "0"
 for c in release.split("~")[0].split(".")[2]:

@@ -41,8 +41,10 @@ if sys.version_info.major > 2:
     unicode = str
 
 try:
-    from typing import List
+    from typing import List, Tuple, Union
     List  # pyflakes
+    Tuple  # pyflakes
+    Union  # pyflakes
 except ImportError:
     pass
 
@@ -68,11 +70,12 @@ class TrustedKey(object):
         self.date = date
 
     def __str__(self):
+        # type: () -> str
         return "%s\n%s %s" % (self.name, self.keyid, self.date)
 
 
 def _call_apt_key_script(*args, **kwargs):
-    # type: (...) -> str
+    # type: (str, Union[str, bytes]) -> str
     """Run the apt-key script with the given arguments."""
     conf = None
     cmd = [apt_pkg.config.find_file("Dir::Bin::Apt-Key", "/usr/bin/apt-key")]
@@ -96,13 +99,12 @@ def _call_apt_key_script(*args, **kwargs):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
 
-        content = kwargs.get("stdin", None)
+        stdin = kwargs.get("stdin", None)
         # py2 needs this encoded, py3.3 will crash if it is
-        isunicode = isinstance(content, unicode)  # type: ignore
-        if sys.version_info.major < 3 and isunicode:
-            content = content.encode("utf-8")
+        if sys.version_info.major < 3 and isinstance(stdin, unicode):
+            stdin = stdin.encode("utf-8")
 
-        output, stderr = proc.communicate(content)
+        output, stderr = proc.communicate(stdin)  # type: str, str
 
         if proc.returncode:
             raise AptKeyError(
@@ -152,6 +154,7 @@ def add_key_from_keyserver(keyid, keyserver):
         # We are racing with gpg when removing sockets, so ignore
         # failure to delete non-existing files.
         def onerror(func, path, exc_info):
+            # type: (object, str, Tuple[type, Exception, object]) -> None
             if (isinstance(exc_info[1], OSError) and
                 exc_info[1].errno == errno.ENOENT):
                 return
