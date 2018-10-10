@@ -278,7 +278,7 @@ class InstallProgress(object):
         if status == 'pmerror' or status == 'error':
             self.error(pkgname, status_str)
         elif status == 'conffile-prompt' or status == 'pmconffile':
-            match = re.match("\s*\'(.*)\'\s*\'(.*)\'.*", status_str)
+            match = re.match("\\s*\'(.*)\'\\s*\'(.*)\'.*", status_str)
             if match:
                 self.conffile(match.group(1), match.group(2))
         elif status == "pmstatus":

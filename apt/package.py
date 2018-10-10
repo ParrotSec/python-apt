@@ -1342,7 +1342,7 @@ class Package(object):
                 changelog_file = urlopen(uri)
                 # do only get the lines that are new
                 changelog = u""
-                regexp = "^%s \((.*)\)(.*)$" % (re.escape(src_pkg))
+                regexp = "^%s \\((.*)\\)(.*)$" % (re.escape(src_pkg))
                 while True:
                     # Check if the download was canceled
                     if cancel_lock and cancel_lock.is_set():
