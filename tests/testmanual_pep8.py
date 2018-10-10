@@ -20,7 +20,9 @@ class PackagePep8TestCase(unittest.TestCase):
              #      next logical line
              # E265 block comment should start with '# '
              # E402 module level import not at top of file (breaks tests)
-             "--ignore=E125,E126,E127,E128,E129,E265,E402",
+             # W504 line break after binary operator (that's the
+             #      correct behavior)
+             "--ignore=E125,E126,E127,E128,E129,E265,E402,W504",
              "--exclude", "build,tests/old",
              "--repeat", py_dir])
         if res != 0:

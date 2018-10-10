@@ -1,8 +1,9 @@
-python-apt (1.7.0~rc1+parrot1) testing; urgency=medium
+python-apt (1.7.0) unstable; urgency=medium
 
-  * Import new Debian release.
+  * Fix escaping in regular expressions and ignore some pep8 warnings
+  * as usual; updated mirror lists
 
- -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 07 Oct 2018 01:16:04 +0200
+ -- Julian Andres Klode <jak@debian.org>  Wed, 10 Oct 2018 17:39:25 +0200
 
 python-apt (1.7.0~rc1) unstable; urgency=medium
 
@@ -76,13 +77,6 @@ python-apt (1.7.0~alpha1) experimental; urgency=medium
   * fix SourceRecordsFile class reference
 
  -- Julian Andres Klode <jak@debian.org>  Mon, 25 Jun 2018 11:29:01 +0200
-
-python-apt (1.6.1+parrot0) testing; urgency=medium
-
-  * Non-maintainer upload.
-  * Add Parrot support.
-
- -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 08 Jul 2018 17:29:51 +0200
 
 python-apt (1.6.0) unstable; urgency=medium
 
@@ -509,7 +503,7 @@ python-apt (0.9.3.11) unstable; urgency=low
 
 python-apt (0.9.3.10) unstable; urgency=medium
 
-  * python/tag.cc: ensure that the final \n is there when
+  * python/tag.cc: ensure that the final \n is there when 
     duplicating section data
   * apt/debfile.py:
     - Stop reading after the "Format" stanza in a .dsc file
@@ -558,7 +552,7 @@ python-apt (0.9.3.6) unstable; urgency=medium
   * Add support for build profiles (Closes: 744243)
 
   [ Michael Vogt ]
-  * debian/control:
+  * debian/control: 
     - update build-depends on libapt-pkg-dev for build-profile support
   * data/templates/Ubuntu.info.in:
     - add ubuntu utopic
@@ -705,7 +699,7 @@ python-apt (0.9.0) unstable; urgency=low
   [ Michael Vogt ]
   * some fixes from the "coverity" scan
   * merge from Ubuntu:
-    - data/templates/Ubuntu.info.in: add "Saucy Salamander" to
+    - data/templates/Ubuntu.info.in: add "Saucy Salamander" to 
     - debian/control: add "Multi-Arch: allowed"
 
   [ Julian Andres Klode ]
@@ -755,14 +749,14 @@ python-apt (0.8.9.1) unstable; urgency=low
 
   [ Michael Vogt ]
   * debian/control:
-    - updated Vcs field to point to
+    - updated Vcs field to point to 
       http://git.debian.org/git/apt/python-apt.git
   * replace .bzr-builddeb/default.conf with debian/gbp.conf
 
   [ Julian Andres Klode ]
   * Update the Vcs fields to use Vcs-Git with git protocol, and gitweb
     for Vcs-Browser
-
+  
   [ Colin Watson ]
   * add support for "key in apt.debfile.DebPackage" (closes: #710541)
 
@@ -796,11 +790,11 @@ python-apt (0.8.9~exp1) experimental; urgency=low
     - add raring
   * tests/test_all.py, aptsources/distro.py:
     - python2.6 compat fixes
-
+  
   [ Jason Conti ]
   * lp:~jconti/python-apt/closeable-cache:
     - add apt.Cache.close() method
-
+  
   [ Martin Pitt ]
   * tests/*.py: Do not prepend None to sys.path, Python 3.3 redeems that with
     an unintelligible crash.
@@ -835,7 +829,7 @@ python-apt (0.8.9~exp1) experimental; urgency=low
       doesn't get upset with it.
   * data/templates/Ubuntu.info.in:
     - Fix descriptions of quantal and raring.
-
+  
  -- Michael Vogt <mvo@debian.org>  Wed, 13 Mar 2013 18:36:37 +0100
 
 python-apt (0.8.8.2) unstable; urgency=low
@@ -876,7 +870,7 @@ python-apt (0.8.8) unstable; urgency=low
     - Only support long (v4) keyids when downloading keys and
       check the keys fingerprint before importing. This avoids
       man-in-the-middle attacks (LP: #1016643)
-  * consolidate tests/test_lp1030278.py into the new
+  * consolidate tests/test_lp1030278.py into the new 
     tests/test_size_to_str.py
   * apt/auth.py:
     - support importing long keyids with leading 0x and mixed case
@@ -953,10 +947,10 @@ python-apt (0.8.5) unstable; urgency=low
 
   [ Steve Langasek ]
   * utils/get_ubuntu_mirrors_from_lp.py: move this script to python3
-  * pre-build.sh: call dpkg-checkbuilddeps with the list of our
+  * pre-build.sh: call dpkg-checkbuilddeps with the list of our 
     source-build-dependencies; this may save someone else an hour down the
     line scratching their head over gratuitous test-suite failures...
-
+  
   [ Sebastian Heinlein ]
   * lp:~glatzor/python-apt/auth:
     - this is a port of the software-properties AptAuth module to python-apt
@@ -1041,7 +1035,7 @@ python-apt (0.8.4~exp1) experimental; urgency=low
 
   * tests/test_apt_cache.py:
     - fix tests on kfreebsd/ia64
-  * apt/debfile.py:
+  * apt/debfile.py: 
     - fix crash in dep multiarch handling
 
  -- Michael Vogt <mvo@debian.org>  Tue, 24 Jan 2012 14:02:46 +0100
@@ -1061,9 +1055,9 @@ python-apt (0.8.3ubuntu9) UNRELEASED; urgency=low
 
 python-apt (0.8.3) unstable; urgency=low
 
-  [ Alexey Feldgendler ]
+  [ Alexey Feldgendler ] 
   * handle architecture-specific conflicts correctly (LP: #829138)
-
+  
   [ Michael Vogt ]
   * lp:~mvo/python-apt/debfile-multiarch:
     - add multiarch support to the debfile.py code
@@ -1100,29 +1094,29 @@ python-apt (0.8.2) unstable; urgency=low
     - set Dir::bin::dpkg if a alternate rootdir is given
       (LP: #885895)
   * build fixes for the apt in experimental
-  * apt/debfile.py:
-    - raise error when accessing require_changes and
-      missing_deps without calling check() before, thanks to
+  * apt/debfile.py: 
+    - raise error when accessing require_changes and 
+      missing_deps without calling check() before, thanks to 
       Tshepang Lekhonkhobe (closes: #624379)
   * apt/package.py:
     - add new "suggests" property, thanks to Christop Groth
     - allow Dependency object to be iteratable, this allows to write
       code like:
       for or_dep_group in pkg.candidate.dependencies:
-          for dep in or_dep_group:
+          for dep in or_dep_group: 
               do_something()
       (thanks to Christop Groth)
   * apt/progress/base.py:
     - write exception text to stderr to avoid hidding exceptions
       like "pre-configure failed" from libapt (thanks to Jean-Baptiste
       Lallement)
-
+  
   [ Tshepang Lekhonkhobe ]
   * rm usage of camelcase in cache.py doc (closes: #626617)
   * grammar fix in the cache.py doc (closes: #626610)
 
   [ Nikola Pavlović ]
-  * fixed a typo, changed "Open Source software" to
+  * fixed a typo, changed "Open Source software" to 
     "free and open-source software"  (LP: #500940)
 
  -- Michael Vogt <mvo@debian.org>  Thu, 01 Dec 2011 14:14:42 +0100
@@ -1131,7 +1125,7 @@ python-apt (0.8.1) unstable; urgency=low
 
   [ Julian Andres Klode ]
   * Breaks: debsecan (<< 0.4.15) [not only << 0.4.14] (Closes: #629512)
-
+  
   [ Michael Vogt ]
   * python/arfile.cc:
     - use APT::Configuration::getCompressionTypes() instead of duplicating
@@ -1195,7 +1189,7 @@ python-apt (0.8.0~exp3) experimental; urgency=low
 
   [ Stéphane Graber ]
   * Update enable_component to also apply to -src entries (LP: #758732)
-
+  
   [ Julian Andres Klode ]
   * apt_pkg: Add apt_pkg.Version.multi_arch and friends
 
@@ -1360,7 +1354,7 @@ python-apt (0.7.98) unstable; urgency=low
   * add "provides" property to the apt.Version objects
   * apt/debfile.py:
     - fix error when reading binary content and add regresion test
-  * merged patch from Samuel Lidén Borell to fix crash if there utf8
+  * merged patch from Samuel Lidén Borell to fix crash if there utf8 
     in the control file (LP: #624290) and add test
   * apt/cache.py:
     - add "sources_list" parameter to cache.update() to force updating
@@ -1415,7 +1409,7 @@ python-apt (0.7.97) unstable; urgency=low
     - Build-depend on APT >= 0.8 to get gzip compression enabled (optional,
       can be reverted for backports)
     - Set Standards-Version to 3.9.1
-
+  
   [ Michael Vogt ]
   * python/configuration.cc:
     - add binding for the "dump()" method to configruation objects
@@ -1429,7 +1423,7 @@ python-apt (0.7.97) unstable; urgency=low
 python-apt (0.7.96.1) unstable; urgency=low
 
   * tests/test_debfile.py:
-   - properly setup fixture data to make debfile test pass
+   - properly setup fixture data to make debfile test pass 
      (closes: #588796)
 
  -- Michael Vogt <mvo@debian.org>  Mon, 12 Jul 2010 14:14:51 +0200
@@ -1440,7 +1434,7 @@ python-apt (0.7.96) unstable; urgency=low
   * data/templates/gNewSense.info.in,
     data/templates/gNewSense.mirrors:
     - add gNewSense template and mirrors, thanks to Karl Goetz
-  * data/templates/Ubuntu.info.in,
+  * data/templates/Ubuntu.info.in, 
     data/templates/Ubuntu.mirrors:
     - updated for Ubuntu maverick
   * doc/source/conf.py:
@@ -1449,7 +1443,7 @@ python-apt (0.7.96) unstable; urgency=low
     - ignore mirrors without a county
   * apt/cache.py:
     - add new "dpkg_journal_dirty" property that can be used to
-      detect a interrupted dpkg (the famous
+      detect a interrupted dpkg (the famous 
      "E: dpkg was interrupted, you must manually run 'dpkg --configure -a'")
   * merged lp:~kiwinote/python-apt/merge-gdebi-changes, this port the
     DebPackage class fixes from gdebi into python-apt so that gdebi can
@@ -1633,7 +1627,7 @@ python-apt (0.7.93.2) unstable; urgency=low
     - Run tests during build time.
   * debian/python-apt.install:
     - Install utils/migrate-0.8.py to /usr/share/python-apt/.
-
+  
   [ Michael Vogt ]
   * apt/cache.py:
     - call install_progress.startUpdate()/finishUpdate() to keep
@@ -1711,16 +1705,16 @@ python-apt (0.7.93) unstable; urgency=low
   * apt/progress/__init__.py:
     - Fix InstallProgress.updateInterface() to cope with read() returning 0
       on non-blocking file descriptors (LP: #491027).
-
+  
   [ Michael Vogt ]
-  * apt/cache.py:
+  * apt/cache.py: 
     - improved docstring for the cache
     - add "enhances" property
   * data/templates/Ubuntu.info.in:
     - add lucid
   * python/cache.cc:
     - add UntranslatedDepType attribute to DependencyType
-    - add DepTypeEnum that returns a value from
+    - add DepTypeEnum that returns a value from 
       {DepDepends, DepPreDepends, ...}
   * python/apt_pkgmodule.cc:
     - add DepDpkgBreaks, DepEnhances constants

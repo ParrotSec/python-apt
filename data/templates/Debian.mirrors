@@ -154,9 +154,7 @@ http://ftp.udc.es/debian/
 http://softlibre.unizar.es/debian/
 http://ulises.hostalia.com/debian/
 #LOC:FI
-http://ftp.fi.debian.org/debian/
 http://ftp.funet.fi/pub/linux/mirrors/debian/
-http://trumpetti.atm.tut.fi/debian/
 #LOC:FR
 http://deb-mir1.naitways.net/debian/
 http://debian.mirror.ate.info/
@@ -411,6 +409,7 @@ http://debian.mirrors.pair.com/debian/
 http://debian.osuosl.org/debian/
 http://debian.securedservers.com/debian/
 http://debian.uchicago.edu/debian/
+http://ftp.naz.com/debian/
 http://ftp.us.debian.org/debian/
 http://ftp.utexas.edu/debian/
 http://mirror.cc.columbia.edu/debian/
