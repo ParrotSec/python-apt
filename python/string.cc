@@ -28,13 +28,13 @@ PyObject *Python(PyObject *Self,PyObject *Args) \
    return CppPyString(CFunc(Str)); \
 }
 
-#define MkInt(Python,CFunc, ctype, pytype) \
+#define MkInt(Python,CFunc, ctype, pytype, ...) \
 PyObject *Python(PyObject *Self,PyObject *Args) \
 { \
    ctype Val = 0; \
    if (PyArg_ParseTuple(Args,pytype,&Val) == 0) \
       return 0; \
-   return CppPyString(CFunc(Val)); \
+   return CppPyString(CFunc(Val, ##__VA_ARGS__)); \
 }
 
 MkStr(StrDeQuote,DeQuoteString);
@@ -63,7 +63,7 @@ PyObject *StrURItoFileName(PyObject *Self,PyObject *Args)
 
 //MkFloat(StrSizeToStr,SizeToStr);
 MkInt(StrTimeToStr,TimeToStr, unsigned long, "k");
-MkInt(StrTimeRFC1123,TimeRFC1123, long long, "L");
+MkInt(StrTimeRFC1123,TimeRFC1123, long long, "L", false);
 									/*}}}*/
 
 // Other String functions						/*{{{*/
@@ -120,7 +120,7 @@ PyObject *StrStrToTime(PyObject *Self,PyObject *Args)
 
    time_t Result;
 APT_IGNORE_DEPRECATED_PUSH
-   if (StrToTime(Str,Result) == false)
+   if (RFC1123StrToTime(Str,Result) == false)
    {
 APT_IGNORE_DEPRECATED_POP
       Py_INCREF(Py_None);

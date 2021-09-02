@@ -8,6 +8,19 @@ LSB release name is used, e.g. 'Ubuntu.info' on a Ubuntu system.
 Furthermore all .info files are used to render the channels presented in the
 sources list more user friendly.
 
+Abstract paragraphs
+-------------------
+If the Suite name contains a {, the entire paragraph becomes a template
+that gets formatted with distro-info-data data. See the Ubuntu.info.in
+and Debian.info.in for examples.
+
+Note that in such a case, if these paragraphs use { in their values for
+non-template things, such as in regular expressions; they need to be
+escaped - { to {{ and } to }}.
+
+Abstract paragraphs can only be in the middle of the file, the head and the
+tail are copied unmodified. If abstract paragraphs are interleaved with
+concrete ones, the behavior is undefined.
 
 Tags
 ----

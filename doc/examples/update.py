@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import apt
 import apt_pkg
 import os.path
@@ -10,5 +10,5 @@ if __name__ == "__main__":
                        "touch /tmp/update-was-run")
     c = apt.Cache()
     res = c.update(apt.progress.TextFetchProgress())
-    print "res: ", res
+    print("res: ", res)
     assert(os.path.exists("/tmp/update-about-to-run"))

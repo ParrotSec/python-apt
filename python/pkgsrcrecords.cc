@@ -18,7 +18,7 @@
 
 // PkgSrcRecordFiles Class						/*{{{*/
 // ---------------------------------------------------------------------
-typedef pkgSrcRecords::File2 PkgSrcRecordFilesStruct;
+typedef pkgSrcRecords::File PkgSrcRecordFilesStruct;
 
 // compat with the old API that provided a tuple (md5,size,path,type)
 static Py_ssize_t pkgSrcRecordFiles_length(PyObject *Self) {
@@ -31,7 +31,8 @@ static PyObject* pkgSrcRecordFiles_item(PyObject *Self, Py_ssize_t i) {
    PkgSrcRecordFilesStruct f = GetCpp<PkgSrcRecordFilesStruct>(Self);
    switch (i) {
       case 0:
-         return Py_BuildValue("s", f.MD5Hash.c_str());
+         Py_INCREF(Py_None);
+         return Py_None;
       case 1:
          return Py_BuildValue("N", MkPyNumber(f.FileSize));
       case 2:
@@ -288,8 +289,8 @@ static PyObject *PkgSrcRecordsGetFiles(PyObject *Self,void*) {
       return 0;
    PyObject *List = PyList_New(0);
 
-   std::vector<pkgSrcRecords::File2> f;
-   if(!Struct.Last->Files2(f))
+   std::vector<pkgSrcRecords::File> f;
+   if(!Struct.Last->Files(f))
       return NULL; // error
 
    PyObject *v;
@@ -333,13 +334,13 @@ static PyObject *PkgSrcRecordsGetBuildDepends(PyObject *Self,void*) {
      Py_DECREF(OrGroup);
 
      // Add at least one package to the group, add more if Or is set.
-     while (1)
+     while (i < bd.size())
      {
 	    v = Py_BuildValue("(sss)", bd[i].Package.c_str(),
 			bd[i].Version.c_str(), pkgCache::CompType(bd[i].Op));
 	    PyList_Append(OrGroup, v);
 	    Py_DECREF(v);
-	    if (pkgCache::Dep::Or != (bd[i].Op & pkgCache::Dep::Or) || i + 1 >= bd.size())
+	    if (pkgCache::Dep::Or != (bd[i].Op & pkgCache::Dep::Or))
 	       break;
         i++;
      }

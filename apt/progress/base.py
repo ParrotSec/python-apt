@@ -26,19 +26,13 @@ from __future__ import print_function
 
 import errno
 import fcntl
+import io
 import os
 import re
 import select
 import sys
 
-try:
-    from typing import Optional, Union
-    import io
-    io  # pyflakes
-    Optional  # pyflakes
-    Union  # pyflakes
-except ImportError:
-    pass
+from typing import Optional, Union
 
 import apt_pkg
 
@@ -167,7 +161,7 @@ class InstallProgress(object):
         (self.statusfd, self.writefd) = os.pipe()
         # These will leak fds, but fixing this safely requires API changes.
         self.write_stream = os.fdopen(self.writefd, "w")  # type: io.TextIOBase
-        self.status_stream = os.fdopen(self.statusfd, "r")  # type: io.TextIOBase # nopep8
+        self.status_stream = os.fdopen(self.statusfd, "r")  # type: io.TextIOBase # noqa
         fcntl.fcntl(self.statusfd, fcntl.F_SETFL, os.O_NONBLOCK)
 
     def start_update(self):
@@ -177,6 +171,15 @@ class InstallProgress(object):
     def finish_update(self):
         # type: () -> None
         """(Abstract) Called when update has finished."""
+
+    def __enter__(self):
+        # type: () -> InstallProgress
+        return self
+
+    def __exit__(self, type, value, traceback):
+        # type: (object, object, object) -> None
+        self.write_stream.close()
+        self.status_stream.close()
 
     def error(self, pkg, errormsg):
         # type: (str, str) -> None
@@ -218,17 +221,24 @@ class InstallProgress(object):
         """
         pid = self.fork()
         if pid == 0:
+            try:
+                # PEP-446 implemented in Python 3.4 made all descriptors
+                # CLOEXEC, but we need to be able to pass writefd to dpkg
+                # when we spawn it
+                os.set_inheritable(self.writefd, True)
+            except AttributeError:  # if we don't have os.set_inheritable()
+                pass
             # pm.do_install might raise a exception,
             # when this happens, we need to catch
             # it, otherwise os._exit() is not run
             # and the execution continues in the
             # parent code leading to very confusing bugs
             try:
-                os._exit(obj.do_install(self.write_stream.fileno()))  # type: ignore # nopep8
+                os._exit(obj.do_install(self.write_stream.fileno()))  # type: ignore # noqa
             except AttributeError:
-                os._exit(os.spawnlp(os.P_WAIT, "dpkg", "dpkg", "--status-fd",   # type: ignore # nopep8
+                os._exit(os.spawnlp(os.P_WAIT, "dpkg", "dpkg", "--status-fd",
                                     str(self.write_stream.fileno()), "-i",
-                                    obj))
+                                    obj))  # type: ignore # noqa
             except Exception as e:
                 sys.stderr.write("%s\n" % e)
                 os._exit(apt_pkg.PackageManager.RESULT_FAILED)

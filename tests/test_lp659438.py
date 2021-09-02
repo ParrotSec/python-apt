@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 """Regression test for LP: #981896, LP: #659438"""
 # Copyright (C) 2012 Sebastian Heinlein <devel@glatzor.de>

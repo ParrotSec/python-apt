@@ -49,10 +49,8 @@ extern PyTypeObject PyTagRename_Type;
 extern PyTypeObject PyTagRemove_Type;
 extern char *doc_ParseSection;
 extern char *doc_ParseTagFile;
-extern char *doc_RewriteSection;
 PyObject *ParseSection(PyObject *self,PyObject *Args);
 PyObject *ParseTagFile(PyObject *self,PyObject *Args);
-PyObject *RewriteSection(PyObject *self,PyObject *Args);
 
 // String Stuff
 PyObject *StrQuoteString(PyObject *self,PyObject *Args);

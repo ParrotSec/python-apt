@@ -43,25 +43,47 @@ static char *policy_get_priority_doc =
 
 PyObject *policy_get_priority(PyObject *self, PyObject *arg) {
     pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
-    if (PyObject_TypeCheck(arg, &PyPackage_Type)) {
-        if (PyErr_WarnEx(PyExc_DeprecationWarning, "Passing apt_pkg.Package to Policy.get_priority() is deprecated, pass a version instead.", 1) == -1)
-            return NULL;
-        pkgCache::PkgIterator pkg = GetCpp<pkgCache::PkgIterator>(arg);
-        return MkPyNumber(policy->GetPriority(pkg));
-    } else if (PyObject_TypeCheck(arg, &PyVersion_Type)) {
+    if (PyObject_TypeCheck(arg, &PyVersion_Type)) {
         auto ver = GetCpp<pkgCache::VerIterator>(arg);
         return MkPyNumber(policy->GetPriority(ver));
     } else if (PyObject_TypeCheck(arg, &PyPackageFile_Type)) {
         pkgCache::PkgFileIterator pkgfile = GetCpp<pkgCache::PkgFileIterator>(arg);
         return MkPyNumber(policy->GetPriority(pkgfile));
     } else {
-        PyErr_SetString(PyExc_TypeError,"Argument must be of Package() or PackageFile().");
+        PyErr_SetString(PyExc_TypeError,"Argument must be of Version or PackageFile.");
         return 0;
     }
 }
 
+
+static char *policy_set_priority_doc =
+    "set_priority(which: Union[apt_pkg.Version, apt_pkg.PackageFile], priority: int) -> None\n\n"
+    "Override priority for the given package/file. Behavior is undefined if"
+    "a preferences file is read after that, or :meth:`init_defaults` is called.";
+static PyObject *policy_set_priority(PyObject *self, PyObject *args) {
+    PyObject *which;
+    signed short priority;
+    if (PyArg_ParseTuple(args, "Oh", &which, &priority) == 0)
+        return 0;
+    pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
+
+    if (PyObject_TypeCheck(which, &PyVersion_Type)) {
+        auto ver = GetCpp<pkgCache::VerIterator>(which);
+        policy->SetPriority(ver, priority);
+    } else if (PyObject_TypeCheck(which, &PyPackageFile_Type)) {
+        auto pkgfile = GetCpp<pkgCache::PkgFileIterator>(which);
+        policy->SetPriority(pkgfile, priority);
+    } else {
+        PyErr_SetString(PyExc_TypeError,"Argument must be of Version or PackageFile.");
+        return 0;
+    }
+
+    HandleErrors();
+    Py_RETURN_NONE;
+}
+
 static char *policy_get_candidate_ver_doc =
-    "get_match(package: apt_pkg.Package) -> apt_pkg.Version\n\n"
+    "get_match(package: apt_pkg.Package) -> Optional[apt_pkg.Version]\n\n"
     "Get the best package for the job.";
 
 PyObject *policy_get_candidate_ver(PyObject *self, PyObject *arg) {
@@ -69,27 +91,16 @@ PyObject *policy_get_candidate_ver(PyObject *self, PyObject *arg) {
         pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
         pkgCache::PkgIterator pkg = GetCpp<pkgCache::PkgIterator>(arg);
         pkgCache::VerIterator ver = policy->GetCandidateVer(pkg);
+        if (ver.end()) {
+            HandleErrors();
+            Py_RETURN_NONE;
+        }
         return CppPyObject_NEW<pkgCache::VerIterator>(arg,&PyVersion_Type,
                                                            ver);
     } else {
         PyErr_SetString(PyExc_TypeError,"Argument must be of Package().");
         return 0;
     }
-}
-
-static char *policy_get_match_doc =
-    "get_match(package: apt_pkg.Package) -> apt_pkg.Version\n\n"
-    "Return a matching version for the given package.";
-
-static PyObject *policy_get_match(PyObject *self, PyObject *arg) {
-    if (PyObject_TypeCheck(arg, &PyPackage_Type) == 0) {
-        PyErr_SetString(PyExc_TypeError,"Argument must be of Package().");
-        return 0;
-    }
-    pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
-    pkgCache::PkgIterator pkg = GetCpp<pkgCache::PkgIterator>(arg);
-    pkgCache::VerIterator ver = policy->GetMatch(pkg);
-    return CppPyObject_NEW<pkgCache::VerIterator>(arg,&PyVersion_Type,ver);
 }
 
 static char *policy_read_pinfile_doc =
@@ -150,9 +161,23 @@ static PyObject *policy_create_pin(PyObject *self, PyObject *args) {
     Py_RETURN_NONE;
 }
 
+static char *policy_init_defaults_doc =
+    "init_defaults()\n\n"
+    "Initialize defaults. Needed after calling :meth:`create_pin()`\n"
+    "with an empty `pkg` argument";
+static PyObject *policy_init_defaults(PyObject *self, PyObject *args) {
+    if (PyArg_ParseTuple(args, "") == 0)
+        return 0;
+    pkgPolicy *policy = GetCpp<pkgPolicy *>(self);
+    policy->InitDefaults();
+    HandleErrors();
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef policy_methods[] = {
     {"get_priority",(PyCFunction)policy_get_priority,METH_O,
      policy_get_priority_doc},
+    {"set_priority",policy_set_priority,METH_VARARGS,policy_set_priority_doc},
     {"get_candidate_ver",(PyCFunction)policy_get_candidate_ver,METH_O,
      policy_get_candidate_ver_doc},
     {"read_pinfile",(PyCFunction)policy_read_pinfile,METH_O,
@@ -162,7 +187,7 @@ static PyMethodDef policy_methods[] = {
      policy_read_pindir_doc},
 #endif
     {"create_pin",policy_create_pin,METH_VARARGS,policy_create_pin_doc},
-    {"get_match",(PyCFunction)policy_get_match,METH_O, policy_get_match_doc},
+    {"init_defaults",policy_init_defaults,METH_VARARGS,policy_init_defaults_doc},
     {}
 };
 

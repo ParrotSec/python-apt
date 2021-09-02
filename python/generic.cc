@@ -61,13 +61,11 @@ const char **ListToCharChar(PyObject *List,bool NullTerm)
    for (int I = 0; I != Length; I++)
    {
       PyObject *Itm = PySequence_GetItem(List,I);
-      if (PyString_Check(Itm) == 0)
-      {
-	 PyErr_SetNone(PyExc_TypeError);
-	 delete [] Res;
-	 return 0;
+      Res[I] = PyObject_AsString(Itm);
+      if (Res[I] == nullptr) {
+         delete [] Res;
+         return nullptr;
       }
-      Res[I] = PyString_AsString(Itm);
    }
    if (NullTerm == true)
       Res[Length] = 0;

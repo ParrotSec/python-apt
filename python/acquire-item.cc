@@ -237,43 +237,44 @@ PyTypeObject PyAcquireItem_Type = {
 static PyObject *acquirefile_new(PyTypeObject *type, PyObject *Args, PyObject * kwds)
 {
     PyObject *pyfetcher;
-    const char *uri, *hash, *md5, *descr, *shortDescr;
+    PyObject *pyhashes = nullptr;
+    HashStringList hashes;
+    const char *uri, *descr, *shortDescr;
     PyApt_Filename destDir, destFile;
     int size = 0;
-    uri = hash = md5 = descr = shortDescr = destDir = destFile = "";
+    uri = descr = shortDescr = destDir = destFile = "";
 
-    // "md5" is only in this list for backward compatiblity, everyone should
-    // use "hash"
     char *kwlist[] = {"owner", "uri", "hash", "size", "descr", "short_descr",
-                      "destdir", "destfile", "md5", NULL
+                      "destdir", "destfile", NULL
                      };
 #if PY_MAJOR_VERSION >= 3
-    const char *fmt = "O!s|sissO&O&$s";
+    const char *fmt = "O!s|OissO&O&";
 #else
     // no "$" support to indicate that the remaining args are keyword only
     // in py2.x :/
-    const char *fmt = "O!s|sissO&O&s";
+    const char *fmt = "O!s|OissO&O&";
 #endif
     if (PyArg_ParseTupleAndKeywords(Args, kwds, fmt, kwlist,
-                                    &PyAcquire_Type, &pyfetcher, &uri, &hash,
+                                    &PyAcquire_Type, &pyfetcher, &uri,
+                                    &pyhashes,
                                     &size, &descr, &shortDescr,
                                     PyApt_Filename::Converter, &destDir,
-                                    PyApt_Filename::Converter, &destFile,
-                                    &md5) == 0)
+                                    PyApt_Filename::Converter, &destFile) == 0)
         return 0;
-    // issue deprecation warning for md5
-    if (strlen(md5) > 0) {
-       PyErr_Warn(PyExc_DeprecationWarning,
-                  "Using the md5 keyword is deprecated, please use 'hash' instead");
-    }
-    // support "md5" keyword for backward compatiblity
-    if (strlen(hash) == 0 && strlen(md5) != 0)
-       hash = md5;
+
+    if (pyhashes == nullptr)
+        ;
+    else if (PyString_Check(pyhashes))
+        hashes = HashStringList(PyString_AsString(pyhashes));
+    else if (PyObject_TypeCheck(pyhashes, &PyHashStringList_Type))
+        hashes = GetCpp <HashStringList>(pyhashes);
+    else
+        return PyErr_SetString(PyExc_TypeError, "'hash' value must be an apt_pkg.HashStringList or a string"), nullptr;
 
     pkgAcquire *fetcher = GetCpp<pkgAcquire*>(pyfetcher);
     pkgAcqFile *af = new pkgAcqFile(fetcher,  // owner
                                     uri, // uri
-                                    hash,  // hash
+                                    hashes,  // hash
                                     size,   // size
                                     descr, // descr
                                     shortDescr,
@@ -286,7 +287,7 @@ static PyObject *acquirefile_new(PyTypeObject *type, PyObject *Args, PyObject * 
 
 
 static char *acquirefile_doc =
-    "AcquireFile(owner, uri[, md5, size, descr, short_descr, destdir,"
+    "AcquireFile(owner, uri[, hash: Union[apt_pkg.HashStringList, str], size, descr, short_descr, destdir,"
     "destfile])\n\n"
     "Represent a file to be fetched. The parameter 'owner' points to\n"
     "an apt_pkg.Acquire object and the parameter 'uri' to the source\n"
@@ -303,7 +304,7 @@ static char *acquirefile_doc =
     "and something like 'http://localhost sid/main python-apt 0.7.94.2'\n"
     "as 'descr'."
     "\n"
-    "The parameters 'md5' and 'size' are used to verify the resulting\n"
+    "The parameters 'hash' and 'size' are used to verify the resulting\n"
     "file. The parameter 'size' is also to calculate the total amount\n"
     "of data to be fetched and is useful for resuming a interrupted\n"
     "download.\n\n"

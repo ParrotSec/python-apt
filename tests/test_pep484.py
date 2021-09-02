@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import subprocess
@@ -23,7 +23,7 @@ class PackagePep484TestCase(unittest.TestCase):
                                               "..", "typehinting")
         self.assertEqual(
             subprocess.call(
-                ["mypy", "--strict", "--implicit-optional", top_src_dir]), 0)
+                ["mypy", "--strict", top_src_dir]), 0)
 
 
 if __name__ == "__main__":

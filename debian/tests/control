@@ -1,2 +1,2 @@
 Tests: run-tests
-Depends: @, apt-utils, python-debian, python-all, python3-all, fakeroot, intltool, pep8, pyflakes, gnupg, dirmngr | gnupg (<< 2)
+Depends: @, apt-utils, python3-all, fakeroot, intltool, pycodestyle, pyflakes3, gnupg, dirmngr | gnupg (<< 2), distro-info-data

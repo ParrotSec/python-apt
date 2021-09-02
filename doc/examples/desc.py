@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import apt_pkg
 
@@ -11,15 +11,15 @@ depcache = apt_pkg.DepCache(cache)
 
 pkg = cache["gcc"]
 cand = depcache.get_candidate_ver(pkg)
-print cand
+print(cand)
 
 desc = cand.TranslatedDescription
-print desc
-print desc.file_list
+print(desc)
+print(desc.file_list)
 (f, index) = desc.file_list.pop(0)
 
 records = apt_pkg.PackageRecords(cache)
 records.lookup((f, index))
 desc = records.long_desc
-print len(desc)
-print desc
+print(len(desc))
+print(desc)

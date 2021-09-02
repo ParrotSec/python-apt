@@ -1,2 +1,0 @@
-#!/bin/sh
-(/usr/bin/pyversions "$@"; /usr/bin/py3versions "$@"; ) | tr '\n' ' '

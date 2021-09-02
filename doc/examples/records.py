@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import apt
 
@@ -8,6 +8,6 @@ for pkg in cache:
     if not pkg.candidate.record:
         continue
     if "Task" in pkg.candidate.record:
-        print "Pkg %s is part of '%s'" % (
-            pkg.name, pkg.candidate.record["Task"].split())
+        print("Pkg %s is part of '%s'" % (
+            pkg.name, pkg.candidate.record["Task"].split()))
         #print pkg.candidateRecord

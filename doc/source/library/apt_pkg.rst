@@ -1142,16 +1142,14 @@ Package Pinning with :class:`Policy`
         as 'unstable' for type='Release') and the other possible options.
         The parameter 'priority' gives the priority of the pin.
 
+    .. automethod:: init_defaults
+
     .. method:: get_candidate_ver(package: apt_pkg.Package) -> apt_pkg.Version
 
         Get the best package for the job; that is, the package with the
         highest pin priority.
 
-    .. method:: get_match(package: apt_pkg.Package) -> apt_pkg.Version
-
-        Get a version for the package.
-
-    .. method:: get_priority(package: Union[apt_pkg.Package, apt_pkg.Version, apt_pkg.PackageFile]) -> int
+    .. method:: get_priority(package: Union[apt_pkg.Version, apt_pkg.PackageFile]) -> int
 
         Get the pin priority of the package, version, or package file
         given by *package*.
@@ -1795,8 +1793,8 @@ installation.
     of apt is supported.
 
     The parameter *hash* refers to the hash of the file. If this is set
-    libapt will check the file after downloading. See :class:`HashString`
-    for the combined form string format description.
+    libapt will check the file after downloading. This should be an instance
+    of :class:`apt_pkg.HashStringList`.
 
     The parameter *size* can be used to specify the size of the package,
     which can then be used to calculate the progress and validate the download.
@@ -1819,6 +1817,11 @@ installation.
 
     In terms of attributes, this class is a subclass of :class:`AcquireItem`
     and thus inherits all its attributes.
+
+    .. versionchanged:: 1.9.1
+
+        The *hash* parameter now accepts an :class:`apt_pkg.HashStringList`,
+        the old *md5* parameter has been removed.
 
 .. class:: AcquireWorker
 
@@ -1914,6 +1917,10 @@ generic hash support:
         The type of the hash, as a string. This may be "MD5Sum", "SHA1",
         "SHA256" or "SHA512".
 
+    .. autoattribute:: hashvalue
+
+    .. autoattribute:: usable
+
     .. method:: verify_file(filename: str) -> bool
 
         Verify that the file given by the parameter *filename* matches the
@@ -1944,6 +1951,11 @@ The :mod:`apt_pkg` module also provides the functions :func:`md5sum`,
     .. versionchanged:: 0.7.100
         Added support for using file descriptors.
 
+    .. deprecated:: 1.9
+
+        Use :class:`apt_pkg.Hashes` instead. This function will be removed
+        in a later release.
+
 .. function:: sha1sum(object)
 
     Return the sha1sum of the object. *object* may either be a string, in
@@ -1954,6 +1966,11 @@ The :mod:`apt_pkg` module also provides the functions :func:`md5sum`,
     .. versionchanged:: 0.7.100
         Added support for using file descriptors.
 
+    .. deprecated:: 1.9
+
+        Use :class:`apt_pkg.Hashes` instead. This function will be removed
+        in a later release.
+
 .. function:: sha256sum(object)
 
     Return the sha256sum of the object. *object* may either be a string, in
@@ -1963,6 +1980,11 @@ The :mod:`apt_pkg` module also provides the functions :func:`md5sum`,
 
     .. versionchanged:: 0.7.100
         Added support for using file descriptors.
+
+    .. deprecated:: 1.9
+
+        Use :class:`apt_pkg.Hashes` instead. This function will be removed
+        in a later release.
 
 Debian control files
 --------------------
@@ -2104,6 +2126,9 @@ section as a string.
         Return a list of keys in the section.
 
 
+    .. automethod:: write
+
+
 A function can be rewritten by using tag classes:
 
 .. autoclass:: Tag
@@ -2143,10 +2168,6 @@ Pre-defined ordering for tag sections are:
 
     The order in which the information for source packages should be rewritten,
     i.e. the order in which the fields should appear.
-
-Before APT 1.1, the function :func:`rewrite_section` was used.
-
-.. autofunction:: rewrite_section
 
 
 Dependencies

@@ -23,6 +23,7 @@
 
 from __future__ import print_function
 
+import csv
 import errno
 import logging
 import os
@@ -32,6 +33,87 @@ import re
 import apt_pkg
 
 from apt_pkg import gettext as _
+
+
+def _expand_template(template, csv_path):
+    """Expand the given template.
+
+    A template file consists of a header, followed by paragraphs
+    of templated suites, followed by a footer. A templated suite
+    is any paragraph where the Suite field contains {.
+
+    This function expands all templated suites using the information
+    found in the CSV file supplied by distro-info-data.
+
+    It yields lines of template info.
+    """
+
+    known_suites = set()
+
+    # Copy out any header, and gather all hardcoded suites
+    with apt_pkg.TagFile(template) as tmpl:
+        for section in tmpl:
+            if "X-Exclude-Suites" in section:
+                known_suites.update(section["X-Exclude-Suites"].split(", "))
+            if "Suite" in section:
+                if "{" in section["Suite"]:
+                    break
+
+                known_suites.add(section["Suite"])
+
+            yield from str(section).splitlines()
+        else:
+            # We did not break, so we did copy all of them
+            return
+
+        for section in tmpl:
+            if "Suite" in section:
+                known_suites.add(section["Suite"])
+
+    with open(csv_path) as csv_object:
+        releases = reversed(list(csv.DictReader(csv_object)))
+
+    # Perform template substitution on the middle of the list
+    for rel in releases:
+        if rel["series"] in known_suites:
+            continue
+        yield ""
+        rel["version"] = rel["version"].replace(" LTS", "")
+        with apt_pkg.TagFile(template) as tmpl:
+            for section in tmpl:
+                # Only work on template sections, this skips head and tails
+                if "Suite" not in section or "{" not in section["Suite"]:
+                    continue
+                if "X-Version" in section:
+                    # Version requirements. Maybe should be made nicer
+                    ver = rel["version"]
+                    if any(
+                            (field.startswith("le") and
+                             apt_pkg.version_compare(field[3:], ver) < 0) or
+                            (field.startswith("ge") and
+                             apt_pkg.version_compare(field[3:], ver) > 0)
+                            for field in section["X-Version"].split(", ")):
+                        continue
+
+                for line in str(section).format(**rel).splitlines():
+                    if line.startswith("X-Version"):
+                        continue
+                    yield line
+
+    # Copy out remaining suites
+    with apt_pkg.TagFile(template) as tmpl:
+        # Skip the head again, we don't want to copy it twice
+        for section in tmpl:
+            if "Suite" in section and "{" in section["Suite"]:
+                break
+
+        for section in tmpl:
+            # Ignore any template parts and copy the rest out,
+            # this is the inverse of the template substitution loop
+            if "Suite" in section and "{" in section["Suite"]:
+                continue
+
+            yield from str(section).splitlines()
 
 
 class Template(object):
@@ -168,8 +250,9 @@ class DistInfo(object):
         if not dist:
             try:
                 dist = Popen(["lsb_release", "-i", "-s"],
+                             universal_newlines=True,
                              stdout=PIPE).communicate()[0].strip()
-            except OSError as exc:
+            except (OSError, IOError) as exc:
                 if exc.errno != errno.ENOENT:
                     logging.warning(
                         'lsb_release failed, using defaults:' % exc)
@@ -180,92 +263,93 @@ class DistInfo(object):
         map_mirror_sets = {}
 
         dist_fname = "%s/%s.info" % (base_dir, dist)
-        with open(dist_fname) as dist_file:
-            template = None
-            component = None
-            for line in dist_file:
-                tokens = line.split(':', 1)
-                if len(tokens) < 2:
-                    continue
-                field = tokens[0].strip()
-                value = tokens[1].strip()
-                if field == 'ChangelogURI':
-                    self.changelogs_uri = _(value)
-                elif field == 'MetaReleaseURI':
-                    self.metarelease_uri = value
-                elif field == 'Suite':
-                    self.finish_template(template, component)
-                    component = None
-                    template = Template()
-                    template.name = value
-                    template.distribution = dist
-                    template.match_name = "^%s$" % value
-                elif field == 'MatchName':
-                    template.match_name = value
-                elif field == 'ParentSuite':
-                    template.child = True
-                    for nanny in self.templates:
-                        # look for parent and add back ref to it
-                        if nanny.name == value:
-                            template.parents.append(nanny)
-                            nanny.children.append(template)
-                elif field == 'Available':
-                    template.available = apt_pkg.string_to_bool(value)
-                elif field == 'Official':
-                    template.official = apt_pkg.string_to_bool(value)
-                elif field == 'RepositoryType':
-                    template.type = value
-                elif field == 'BaseURI' and not template.base_uri:
-                    template.base_uri = value
-                elif field == 'BaseURI-%s' % self.arch:
-                    template.base_uri = value
-                elif field == 'MatchURI' and not template.match_uri:
-                    template.match_uri = value
-                elif field == 'MatchURI-%s' % self.arch:
-                    template.match_uri = value
-                elif (field == 'MirrorsFile' or
-                      field == 'MirrorsFile-%s' % self.arch):
-                    # Make the path absolute.
-                    value = os.path.isabs(value) and value or \
-                            os.path.abspath(os.path.join(base_dir, value))
-                    if value not in map_mirror_sets:
-                        mirror_set = {}
-                        try:
-                            with open(value) as value_f:
-                                mirror_data = list(filter(
-                                    match_mirror_line.match,
-                                    [x.strip() for x in value_f]))
-                        except Exception:
-                            print("WARNING: Failed to read mirror file")
-                            mirror_data = []
-                        for line in mirror_data:
-                            if line.startswith("#LOC:"):
-                                location = match_loc.sub(r"\1", line)
-                                continue
-                            (proto, hostname, dir) = split_url(line)
-                            if hostname in mirror_set:
-                                mirror_set[hostname].add_repository(proto, dir)
-                            else:
-                                mirror_set[hostname] = Mirror(
-                                    proto, hostname, dir, location)
-                        map_mirror_sets[value] = mirror_set
-                    template.mirror_set = map_mirror_sets[value]
-                elif field == 'Description':
-                    template.description = _(value)
-                elif field == 'Component':
-                    if (component and not
-                            template.has_component(component.name)):
-                            template.components.append(component)
-                    component = Component(value)
-                elif field == 'CompDescription':
-                    component.set_description(_(value))
-                elif field == 'CompDescriptionLong':
-                    component.set_description_long(_(value))
-                elif field == 'ParentComponent':
-                    component.set_parent_component(value)
-            self.finish_template(template, component)
-            template = None
-            component = None
+        csv_fname = "/usr/share/distro-info/{}.csv".format(dist.lower())
+
+        template = None
+        component = None
+        for line in _expand_template(dist_fname, csv_fname):
+            tokens = line.split(':', 1)
+            if len(tokens) < 2:
+                continue
+            field = tokens[0].strip()
+            value = tokens[1].strip()
+            if field == 'ChangelogURI':
+                self.changelogs_uri = _(value)
+            elif field == 'MetaReleaseURI':
+                self.metarelease_uri = value
+            elif field == 'Suite':
+                self.finish_template(template, component)
+                component = None
+                template = Template()
+                template.name = value
+                template.distribution = dist
+                template.match_name = "^%s$" % value
+            elif field == 'MatchName':
+                template.match_name = value
+            elif field == 'ParentSuite':
+                template.child = True
+                for nanny in self.templates:
+                    # look for parent and add back ref to it
+                    if nanny.name == value:
+                        template.parents.append(nanny)
+                        nanny.children.append(template)
+            elif field == 'Available':
+                template.available = apt_pkg.string_to_bool(value)
+            elif field == 'Official':
+                template.official = apt_pkg.string_to_bool(value)
+            elif field == 'RepositoryType':
+                template.type = value
+            elif field == 'BaseURI' and not template.base_uri:
+                template.base_uri = value
+            elif field == 'BaseURI-%s' % self.arch:
+                template.base_uri = value
+            elif field == 'MatchURI' and not template.match_uri:
+                template.match_uri = value
+            elif field == 'MatchURI-%s' % self.arch:
+                template.match_uri = value
+            elif (field == 'MirrorsFile' or
+                  field == 'MirrorsFile-%s' % self.arch):
+                # Make the path absolute.
+                value = os.path.isabs(value) and value or \
+                        os.path.abspath(os.path.join(base_dir, value))
+                if value not in map_mirror_sets:
+                    mirror_set = {}
+                    try:
+                        with open(value) as value_f:
+                            mirror_data = list(filter(
+                                match_mirror_line.match,
+                                [x.strip() for x in value_f]))
+                    except Exception:
+                        print("WARNING: Failed to read mirror file")
+                        mirror_data = []
+                    for line in mirror_data:
+                        if line.startswith("#LOC:"):
+                            location = match_loc.sub(r"\1", line)
+                            continue
+                        (proto, hostname, dir) = split_url(line)
+                        if hostname in mirror_set:
+                            mirror_set[hostname].add_repository(proto, dir)
+                        else:
+                            mirror_set[hostname] = Mirror(
+                                proto, hostname, dir, location)
+                    map_mirror_sets[value] = mirror_set
+                template.mirror_set = map_mirror_sets[value]
+            elif field == 'Description':
+                template.description = _(value)
+            elif field == 'Component':
+                if (component and not
+                        template.has_component(component.name)):
+                    template.components.append(component)
+                component = Component(value)
+            elif field == 'CompDescription':
+                component.set_description(_(value))
+            elif field == 'CompDescriptionLong':
+                component.set_description_long(_(value))
+            elif field == 'ParentComponent':
+                component.set_parent_component(value)
+        self.finish_template(template, component)
+        template = None
+        component = None
 
     def finish_template(self, template, component):
         " finish the current tempalte "

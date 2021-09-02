@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Emulate dpkg --contents"""
 
 from __future__ import print_function

@@ -26,32 +26,14 @@ import os
 import warnings
 import weakref
 
-try:
-    from typing import (Any, Callable, Dict, Iterator, List, Optional,
-                        Set, Tuple, Union, cast, KeysView)
-    Any  # pyflakes
-    Callable  # pyflakes
-    Dict  # pyflakes
-    Iterator  # pyflakes
-    KeysView  # pyflakes
-    List  # pyflakes
-    Optional  # pyflakes
-    Set  # pyflakes
-    Tuple  # pyflakes
-    Union  # pyflakes
-except ImportError:
-    def cast(typ, obj):  # type: ignore
-        return obj
-    pass
+
+from typing import (Any, Callable, Dict, Iterator, List, Optional,
+                    Set, Tuple, Union, cast, KeysView)
 
 import apt_pkg
 from apt.package import Package, Version
 import apt.progress.text
 from apt.progress.base import AcquireProgress, InstallProgress, OpProgress
-OpProgress  # pyflakes
-InstallProgress  # pyflakes
-AcquireProgress  # pyflakes
-Version  # pyflakes
 
 
 class FetchCancelledException(IOError):
@@ -62,12 +44,39 @@ class FetchFailedException(IOError):
     """Exception that is thrown when fetching fails."""
 
 
+class UntrustedException(FetchFailedException):
+    """Exception that is thrown when fetching fails for trust reasons"""
+
+
 class LockFailedException(IOError):
     """Exception that is thrown when locking fails."""
 
 
 class CacheClosedException(Exception):
     """Exception that is thrown when the cache is used after close()."""
+
+
+class _WrappedLock(object):
+    """Wraps an apt_pkg.FileLock to raise LockFailedException.
+
+    Initialized using a directory path."""
+
+    def __init__(self, path):
+        # type: (str) -> None
+        self._path = path
+        self._lock = apt_pkg.FileLock(os.path.join(path, "lock"))
+
+    def __enter__(self):
+        # type: () -> None
+        try:
+            return self._lock.__enter__()
+        except apt_pkg.Error as e:
+            raise LockFailedException(("Failed to lock directory %s: %s") %
+                                       (self._path, e))
+
+    def __exit__(self, typ, value, traceback):
+        # type: (object, object, object) -> None
+        return self._lock.__exit__(typ, value, traceback)
 
 
 class Cache(object):
@@ -97,15 +106,15 @@ class Cache(object):
     """
 
     def __init__(self, progress=None, rootdir=None, memonly=False):
-        # type: (OpProgress, str, bool) -> None
+        # type: (Optional[OpProgress], Optional[str], bool) -> None
         self._cache = cast(apt_pkg.Cache, None)  # type: apt_pkg.Cache
         self._depcache = cast(apt_pkg.DepCache, None)  # type: apt_pkg.DepCache
-        self._records = cast(apt_pkg.PackageRecords, None)  # type: apt_pkg.PackageRecords # nopep8
+        self._records = cast(apt_pkg.PackageRecords, None)  # type: apt_pkg.PackageRecords # noqa
         self._list = cast(apt_pkg.SourceList, None)  # type: apt_pkg.SourceList
-        self._callbacks = {}  # type: Dict[str, List[Union[Callable[..., None],str]]] # nopep8
-        self._callbacks2 = {}  # type: Dict[str, List[Tuple[Callable[..., Any], Tuple[Any, ...], Dict[Any,Any]]]] # nopep8
-        self._weakref = weakref.WeakValueDictionary()  # type: weakref.WeakValueDictionary[str, apt.Package] # nopep8
-        self._weakversions = weakref.WeakSet()  # type: weakref.WeakSet[Version] # nopep8
+        self._callbacks = {}  # type: Dict[str, List[Union[Callable[..., None],str]]] # noqa
+        self._callbacks2 = {}  # type: Dict[str, List[Tuple[Callable[..., Any], Tuple[Any, ...], Dict[Any,Any]]]] # noqa
+        self._weakref = weakref.WeakValueDictionary()  # type: weakref.WeakValueDictionary[str, apt.Package] # noqa
+        self._weakversions = weakref.WeakSet()  # type: weakref.WeakSet[Version] # noqa
         self._changes_count = -1
         self._sorted_set = None  # type: Optional[List[str]]
 
@@ -135,6 +144,11 @@ class Cache(object):
             # Call InitSystem so the change to Dir::State::Status is actually
             # recognized (LP: #320665)
             apt_pkg.init_system()
+
+        # Prepare a lock object (context manager for archive lock)
+        archive_dir = apt_pkg.config.find_dir("Dir::Cache::Archives")
+        self._archive_lock = _WrappedLock(archive_dir)
+
         self.open(progress)
 
     def fix_broken(self):
@@ -153,14 +167,16 @@ class Cache(object):
         check if the required apt directories/files are there and if
         not create them
         """
-        files = ["/var/lib/dpkg/status",
-                 "/etc/apt/sources.list",
-                 ]
-        dirs = ["/var/lib/dpkg",
-                "/etc/apt/",
-                "/var/cache/apt/archives/partial",
-                "/var/lib/apt/lists/partial",
-                ]
+        files = [
+            "/var/lib/dpkg/status",
+            "/etc/apt/sources.list",
+        ]
+        dirs = [
+            "/var/lib/dpkg",
+            "/etc/apt/",
+            "/var/cache/apt/archives/partial",
+            "/var/lib/apt/lists/partial",
+        ]
         for d in dirs:
             if not os.path.exists(rootdir + d):
                 #print "creating: ", rootdir + d
@@ -181,10 +197,10 @@ class Cache(object):
 
         if name in self._callbacks2:
             for callback, args, kwds in self._callbacks2[name]:
-                    callback(self, *args, **kwds)
+                callback(self, *args, **kwds)
 
     def open(self, progress=None):
-        # type: (OpProgress) -> None
+        # type: (Optional[OpProgress]) -> None
         """ Open the package cache, after that it can be used like
             a dictionary
         """
@@ -388,8 +404,17 @@ class Cache(object):
                 reqreinst.add(pkg.get_fullname(pretty=True))
         return reqreinst
 
-    def _run_fetcher(self, fetcher):
-        # type: (apt_pkg.Acquire) -> int
+    def _run_fetcher(self, fetcher, allow_unauthenticated):
+        # type: (apt_pkg.Acquire, Optional[bool]) -> int
+        if allow_unauthenticated is None:
+            allow_unauthenticated = apt_pkg.config.find_b("APT::Get::"
+                                        "AllowUnauthenticated", False)
+
+        untrusted = [item for item in fetcher.items if not item.is_trusted]
+        if untrusted and not allow_unauthenticated:
+            raise UntrustedException("Untrusted packages:\n%s" %
+                "\n".join(i.desc_uri for i in untrusted))
+
         # do the actual fetching
         res = fetcher.run()
 
@@ -412,8 +437,12 @@ class Cache(object):
             raise FetchFailedException(err_msg)
         return res
 
-    def _fetch_archives(self, fetcher, pm):
-        # type: (apt_pkg.Acquire, apt_pkg.PackageManager) -> int
+    def _fetch_archives(self,
+                        fetcher,                # type: apt_pkg.Acquire
+                        pm,                     # type: apt_pkg.PackageManager
+                        allow_unauthenticated=None,  # type: Optional[bool]
+                        ):
+        # type: (...) -> int
         """ fetch the needed archives """
         if self._records is None:
             raise CacheClosedException(
@@ -422,22 +451,17 @@ class Cache(object):
         # this may as well throw a SystemError exception
         if not pm.get_archives(fetcher, self._list, self._records):
             return False
+
         # now run the fetcher, throw exception if something fails to be
         # fetched
-        return self._run_fetcher(fetcher)
+        return self._run_fetcher(fetcher, allow_unauthenticated)
 
-    def _get_archive_lock(self, fetcher):
-        # type: (apt_pkg.Acquire) -> None
-        # get lock
-        archive_dir = apt_pkg.config.find_dir("Dir::Cache::Archives")
-        try:
-            fetcher.get_lock(archive_dir)
-        except apt_pkg.Error as e:
-            raise LockFailedException(("Failed to lock archive directory %s: "
-                                       " %s") % (archive_dir, e))
-
-    def fetch_archives(self, progress=None, fetcher=None):
-        # type: (AcquireProgress, apt_pkg.Acquire) -> int
+    def fetch_archives(self,
+                       progress=None,        # type: Optional[AcquireProgress]
+                       fetcher=None,         # type: Optional[apt_pkg.Acquire]
+                       allow_unauthenticated=None,  # type: Optional[bool]
+                       ):
+        # type: (...) -> int
         """Fetch the archives for all packages marked for install/upgrade.
 
         You can specify either an :class:`apt.progress.base.AcquireProgress()`
@@ -448,6 +472,10 @@ class Cache(object):
         an exception of type :class:`FetchFailedException` or
         :class:`FetchCancelledException` is raised.
 
+        The keyword-only parameter *allow_unauthenticated* specifies whether
+        to allow unauthenticated downloads. If not specified, it defaults to
+        the configuration option `APT::Get::AllowUnauthenticated`.
+
         .. versionadded:: 0.8.0
         """
         if progress is not None and fetcher is not None:
@@ -457,10 +485,10 @@ class Cache(object):
         if fetcher is None:
             fetcher = apt_pkg.Acquire(progress)
 
-        self._get_archive_lock(fetcher)
-
-        return self._fetch_archives(fetcher,
-                                    apt_pkg.PackageManager(self._depcache))
+        with self._archive_lock:
+            return self._fetch_archives(fetcher,
+                                        apt_pkg.PackageManager(self._depcache),
+                                        allow_unauthenticated)
 
     def is_virtual_package(self, pkgname):
         # type: (str) -> bool
@@ -507,7 +535,7 @@ class Cache(object):
 
     def update(self, fetch_progress=None, pulse_interval=0,
                raise_on_error=True, sources_list=None):
-        # type: (AcquireProgress, int, bool, str) -> int
+        # type: (Optional[AcquireProgress], int, bool, Optional[str]) -> int
         """Run the equivalent of apt-get update.
 
         You probably want to call open() afterwards, in order to utilise the
@@ -520,43 +548,41 @@ class Cache(object):
         sources_list -- Update a alternative sources.list than the default.
         Note that the sources.list.d directory is ignored in this case
         """
-        lockfile = apt_pkg.config.find_dir("Dir::State::Lists") + "lock"
-        lock = apt_pkg.get_lock(lockfile)
-
-        if lock < 0:
-            raise LockFailedException("Failed to lock %s" % lockfile)
-
-        if sources_list:
-            old_sources_list = apt_pkg.config.find("Dir::Etc::sourcelist")
-            old_sources_list_d = apt_pkg.config.find("Dir::Etc::sourceparts")
-            old_cleanup = apt_pkg.config.find("APT::List-Cleanup")
-            apt_pkg.config.set("Dir::Etc::sourcelist",
-                               os.path.abspath(sources_list))
-            apt_pkg.config.set("Dir::Etc::sourceparts", "xxx")
-            apt_pkg.config.set("APT::List-Cleanup", "0")
-            slist = apt_pkg.SourceList()
-            slist.read_main_list()
-        else:
-            slist = self._list
-
-        try:
-            if fetch_progress is None:
-                fetch_progress = apt.progress.base.AcquireProgress()
-            try:
-                res = self._cache.update(fetch_progress, slist,
-                                         pulse_interval)
-            except SystemError as e:
-                raise FetchFailedException(e)
-            if not res and raise_on_error:
-                raise FetchFailedException()
-            else:
-                return res
-        finally:
-            os.close(lock)
+        with _WrappedLock(apt_pkg.config.find_dir("Dir::State::Lists")):
             if sources_list:
-                apt_pkg.config.set("Dir::Etc::sourcelist", old_sources_list)
-                apt_pkg.config.set("Dir::Etc::sourceparts", old_sources_list_d)
-                apt_pkg.config.set("APT::List-Cleanup", old_cleanup)
+                old_sources_list = apt_pkg.config.find("Dir::Etc::sourcelist")
+                old_sources_list_d = (
+                    apt_pkg.config.find("Dir::Etc::sourceparts"))
+                old_cleanup = apt_pkg.config.find("APT::List-Cleanup")
+                apt_pkg.config.set("Dir::Etc::sourcelist",
+                                   os.path.abspath(sources_list))
+                apt_pkg.config.set("Dir::Etc::sourceparts", "xxx")
+                apt_pkg.config.set("APT::List-Cleanup", "0")
+                slist = apt_pkg.SourceList()
+                slist.read_main_list()
+            else:
+                slist = self._list
+
+            try:
+                if fetch_progress is None:
+                    fetch_progress = apt.progress.base.AcquireProgress()
+                try:
+                    res = self._cache.update(fetch_progress, slist,
+                                             pulse_interval)
+                except SystemError as e:
+                    raise FetchFailedException(e)
+                if not res and raise_on_error:
+                    raise FetchFailedException()
+                else:
+                    return res
+            finally:
+                if sources_list:
+                    apt_pkg.config.set("Dir::Etc::sourcelist",
+                                       old_sources_list)
+                    apt_pkg.config.set("Dir::Etc::sourceparts",
+                                       old_sources_list_d)
+                    apt_pkg.config.set("APT::List-Cleanup",
+                                       old_cleanup)
 
     def install_archives(self, pm, install_progress):
         # type: (apt_pkg.PackageManager, InstallProgress) -> int
@@ -592,8 +618,12 @@ class Cache(object):
             install_progress.finish_update()
         return res
 
-    def commit(self, fetch_progress=None, install_progress=None):
-        # type: (AcquireProgress, InstallProgress) -> bool
+    def commit(self,
+               fetch_progress=None,         # type: Optional[AcquireProgress]
+               install_progress=None,       # type: Optional[InstallProgress]
+               allow_unauthenticated=None,  # type: Optional[bool]
+               ):
+        # type: (...) -> bool
         """Apply the marked changes to the cache.
 
         The first parameter, *fetch_progress*, refers to a FetchProgress()
@@ -602,6 +632,10 @@ class Cache(object):
 
         The second parameter, *install_progress*, is a
         apt.progress.InstallProgress() object.
+
+        The keyword-only parameter *allow_unauthenticated* specifies whether
+        to allow unauthenticated downloads. If not specified, it defaults to
+        the configuration option `APT::Get::AllowUnauthenticated`.
         """
         # FIXME:
         # use the new acquire/pkgmanager interface here,
@@ -620,25 +654,26 @@ class Cache(object):
         with apt_pkg.SystemLock():
             pm = apt_pkg.PackageManager(self._depcache)
             fetcher = apt_pkg.Acquire(fetch_progress)
-            self._get_archive_lock(fetcher)
+            with self._archive_lock:
+                while True:
+                    # fetch archives first
+                    res = self._fetch_archives(fetcher, pm,
+                                               allow_unauthenticated)
 
-            while True:
-                # fetch archives first
-                res = self._fetch_archives(fetcher, pm)
-
-                # then install
-                res = self.install_archives(pm, install_progress)
-                if res == pm.RESULT_COMPLETED:
-                    break
-                elif res == pm.RESULT_FAILED:
-                    raise SystemError("installArchives() failed")
-                elif res == pm.RESULT_INCOMPLETE:
-                    pass
-                else:
-                    raise SystemError("internal-error: unknown result code "
-                                      "from InstallArchives: %s" % res)
-                # reload the fetcher for media swaping
-                fetcher.shutdown()
+                    # then install
+                    res = self.install_archives(pm, install_progress)
+                    if res == pm.RESULT_COMPLETED:
+                        break
+                    elif res == pm.RESULT_FAILED:
+                        raise SystemError("installArchives() failed")
+                    elif res == pm.RESULT_INCOMPLETE:
+                        pass
+                    else:
+                        raise SystemError("internal-error: unknown result "
+                                          "code from InstallArchives: %s" %
+                                          res)
+                    # reload the fetcher for media swaping
+                    fetcher.shutdown()
         return (res == pm.RESULT_COMPLETED)
 
     def clear(self):
@@ -775,11 +810,6 @@ class ProblemResolver(object):
         """Reset the package to the default state."""
         self._resolver.clear(package._pkg)
 
-    def install_protect(self):
-        # type: () -> None
-        """mark protected packages for install or removal."""
-        self._resolver.install_protect()
-
     def protect(self, package):
         # type: (Package) -> None
         """Protect a package so it won't be removed."""
@@ -884,7 +914,7 @@ class FilteredCache(object):
     """
 
     def __init__(self, cache=None, progress=None):
-        # type: (Cache, OpProgress) -> None
+        # type: (Optional[Cache], Optional[OpProgress]) -> None
         if cache is None:
             self.cache = Cache(progress)
         else:
@@ -976,7 +1006,7 @@ def _test():
     apt_pkg.config.set("Dir::Cache::Archives", "/tmp/pytest")
     pm = apt_pkg.PackageManager(cache._depcache)
     fetcher = apt_pkg.Acquire(apt.progress.text.AcquireProgress())
-    cache._fetch_archives(fetcher, pm)
+    cache._fetch_archives(fetcher, pm, None)
     #sys.exit(1)
 
     print("Testing filtered cache (argument is old cache)")

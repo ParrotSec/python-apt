@@ -16,6 +16,7 @@
 #include <apt-pkg/error.h>
 #include <apt-pkg/acquire.h>
 #include <apt-pkg/init.h>
+#include <apt-pkg/install-progress.h>
 #include <apt-pkg/configuration.h>
 #include <apt-pkg/dpkgpm.h>
 
@@ -51,7 +52,9 @@ static PyObject *PkgManagerDoInstall(PyObject *Self,PyObject *Args)
    if (PyArg_ParseTuple(Args, "|i", &status_fd) == 0)
       return 0;
 
-   pkgPackageManager::OrderResult res = pm->DoInstall(status_fd);
+   APT::Progress::PackageManagerProgressFd progress(status_fd);
+
+   pkgPackageManager::OrderResult res = pm->DoInstall(&progress);
 
    return HandleErrors(MkPyNumber(res));
 }
@@ -203,7 +206,10 @@ public:
 	/* Those call the protected functions from the parent class */
 	bool callInstall(PkgIterator Pkg,std::string File) { return pkgDPkgPM::Install(Pkg, File); }
 	bool callRemove(PkgIterator Pkg, bool Purge) { return pkgDPkgPM::Remove(Pkg, Purge); }
-	bool callGo(int StatusFd=-1) { return pkgDPkgPM::Go(StatusFd); }
+	bool callGo(int StatusFd=-1) {
+	   APT::Progress::PackageManagerProgressFd progress(StatusFd);
+	   return pkgDPkgPM::Go(&progress);
+	 }
 	void callReset() { return pkgDPkgPM::Reset(); }
 	bool callConfigure(PkgIterator Pkg) { return pkgDPkgPM::Configure(Pkg); }
 	pkgOrderList *getOrderList() { return pkgPackageManager::List; }

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import apt_pkg
 
@@ -10,7 +10,7 @@ apt_pkg.init()
 sources = apt_pkg.SourceRecords()
 sources.restart()
 while sources.lookup('hello'):
-    print sources.package, sources.version, sources.maintainer, \
-        sources.section, repr(sources.binaries)
-    print sources.files
-    print sources.index.archive_uri(sources.files[0][2])
+    print(sources.package, sources.version, sources.maintainer,
+        sources.section, repr(sources.binaries))
+    print(sources.files)
+    print(sources.index.archive_uri(sources.files[0][2]))

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Example demonstrating how to use the configuration/commandline system
 # for object setup.
 
@@ -14,7 +14,7 @@ import sys
 ConfigFile = apt_pkg.parse_commandline(apt_pkg.config, [], sys.argv)
 
 if len(ConfigFile) != 1:
-    print "Must have exactly 1 file name"
+    print("Must have exactly 1 file name")
     sys.exit(0)
 
 Cnf = apt_pkg.Configuration()
@@ -22,22 +22,22 @@ apt_pkg.read_config_file_isc(Cnf, ConfigFile[0])
 
 # Print the configuration space
 #print "The Configuration space looks like:"
-#for I in Cnf.keys():
-#   print "%s \"%s\";" % (I, Cnf[I])
+#for item in Cnf.keys():
+#   print "%s \"%s\";" % (item, Cnf[item])
 
 # bind8 config file..
 if "Zone" in Cnf:
-    print "Zones: ", Cnf.sub_tree("zone").list()
-    for I in Cnf.list("zone"):
-        SubCnf = Cnf.sub_tree(I)
+    print("Zones: ", Cnf.sub_tree("zone").list())
+    for item in Cnf.list("zone"):
+        SubCnf = Cnf.sub_tree(item)
         if SubCnf.find("type") == "slave":
-            print "Masters for %s: %s" % (
-                SubCnf.my_tag(), SubCnf.value_list("masters"))
+            print("Masters for %s: %s" % (
+                SubCnf.my_tag(), SubCnf.value_list("masters")))
 else:
-    print "Tree definitions:"
-    for I in Cnf.list("tree"):
-        SubCnf = Cnf.sub_tree(I)
+    print("Tree definitions:")
+    for item in Cnf.list("tree"):
+        SubCnf = Cnf.sub_tree(item)
         # This could use Find which would eliminate the possibility of
         # exceptions.
-        print "Subtree %s with sections '%s' and architectures '%s'" % (
-            SubCnf.my_tag(), SubCnf["Sections"], SubCnf["Architectures"])
+        print("Subtree %s with sections '%s' and architectures '%s'" % (
+            SubCnf.my_tag(), SubCnf["Sections"], SubCnf["Architectures"]))

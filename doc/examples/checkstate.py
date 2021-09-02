@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 #
 # this example is not usefull to find out about updated, upgradable packages
@@ -32,5 +32,5 @@ for package in packages:
         uninstalled[package.name] = version
 
 
-for l in (uninstalled, updated, upgradable):
-    print l.items()[0]
+for line in (uninstalled, updated, upgradable):
+    print(list(line.items())[0])

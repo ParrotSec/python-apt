@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Check the archive for missing dependencies"""
 import apt_pkg
 

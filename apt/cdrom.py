@@ -22,6 +22,7 @@
 """Classes related to cdrom handling."""
 from __future__ import print_function
 
+from typing import Optional
 import glob
 
 import apt_pkg
@@ -46,7 +47,7 @@ class Cdrom(apt_pkg.Cdrom):
     """
 
     def __init__(self, progress=None, mountpoint=None, nomount=True):
-        # type: (CdromProgress, str, bool) -> None
+        # type: (Optional[CdromProgress], Optional[str], bool) -> None
         apt_pkg.Cdrom.__init__(self)
         if progress is None:
             self._progress = CdromProgress()
@@ -62,12 +63,12 @@ class Cdrom(apt_pkg.Cdrom):
             apt_pkg.config.set("APT::CDROM::NoMount", "false")
 
     def add(self, progress=None):
-        # type: (CdromProgress) -> bool
+        # type: (Optional[CdromProgress]) -> bool
         """Add cdrom to the sources.list."""
         return apt_pkg.Cdrom.add(self, progress or self._progress)
 
     def ident(self, progress=None):
-        # type: (CdromProgress) -> str
+        # type: (Optional[CdromProgress]) -> str
         """Identify the cdrom."""
         return apt_pkg.Cdrom.ident(self, progress or self._progress)
 

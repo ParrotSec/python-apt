@@ -1,11 +1,11 @@
-_ChangelogURI: http://changelogs.parrotsec.org/changelogs/%s/%s/%s/%s_%s/changelog
+_ChangelogURI: http://packages.debian.org/changelogs/pool/%s/%s/%s/%s_%s/changelog
 
-Suite: stable
+Suite: lts
 RepositoryType: deb
-BaseURI: http://deb.parrotsec.org/parrot/
-MatchURI: deb.parrotsec.org/parrot
+BaseURI: https://deb.parrot.sh/parrot/
+MatchURI: ((*.deb|deb|mirror|download|dl|archive)\.(parrot\.sh|parrotsec\.org))
 MirrorsFile: Parrot.mirrors
-_Description: Stable Repository for Parrot OS
+_Description: Parrot Security - LTS Repository (Primary)
 Component: main
 _CompDescription: Officially supported
 Component: contrib
@@ -13,15 +13,45 @@ _CompDescription: DFSG-compatible Software with Non-Free Dependencies
 Component: non-free
 _CompDescription: Non-DFSG-compatible Software
 
-Suite: testing
+Suite: rolling
 RepositoryType: deb
-BaseURI: http://deb.parrotsec.org/parrot/
-MatchURI: deb.parrotsec.org/parrot
+BaseURI: https://deb.parrot.sh/parrot/
+MatchURI: ((*.deb|deb|mirror|download|dl|archive)\.(parrot\.sh|parrotsec\.org))
 MirrorsFile: Parrot.mirrors
-_Description: Testing Repository for Parrot OS
+_Description: Parrot Security - Rolling Repository (Primary)
 Component: main
 _CompDescription: Officially supported
 Component: contrib
 _CompDescription: DFSG-compatible Software with Non-Free Dependencies
 Component: non-free
 _CompDescription: Non-DFSG-compatible Software
+
+Suite: rolling-testing
+RepositoryType: deb
+ParentSuite: rolling
+_Description: Parrot Security - Rolling Testing Repository
+
+Suite: rolling-security
+RepositoryType: deb
+ParentSuite: rolling
+_Description: Parrot Security - Rolling Security Repository
+
+Suite: parrot-rolling
+RepositoryType: deb
+ParentSuite: rolling
+_Description: Parrot Security - Rolling Repository (alias)
+
+Suite: lts-updates
+RepositoryType: deb
+ParentSuite: lts
+_Description: Parrot Security - LTS Updates Repository
+
+Suite: lts-backports
+RepositoryType: deb
+ParentSuite: lts
+_Description: Parrot Security - LTS Backports Repository
+
+Suite: lts-security
+RepositoryType: deb
+ParentSuite: lts
+_Description: Parrot Security - LTS Security Repository

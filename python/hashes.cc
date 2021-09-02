@@ -45,18 +45,24 @@ static int hashes_init(PyObject *self, PyObject *args, PyObject *kwds)
         char *s;
         Py_ssize_t len;
         PyBytes_AsStringAndSize(object, &s, &len);
+        Py_BEGIN_ALLOW_THREADS
         hashes.Add((const unsigned char*)s, len);
+        Py_END_ALLOW_THREADS
     }
     else if ((Fd = PyObject_AsFileDescriptor(object)) != -1) {
         struct stat St;
-        if (fstat(Fd, &St) != 0 || hashes.AddFD(Fd, St.st_size) == false) {
+        bool err = false;
+        Py_BEGIN_ALLOW_THREADS
+        err = fstat(Fd, &St) != 0 || hashes.AddFD(Fd, St.st_size) == false;
+        Py_END_ALLOW_THREADS
+        if (err) {
             PyErr_SetFromErrno(PyAptError);
             return -1;
         }
     }
     else {
         PyErr_SetString(PyExc_TypeError,
-                        "__init__() only understand strings and files");
+                        "__init__() only understand bytes and files");
         return -1;
     }
     return 0;
@@ -70,49 +76,11 @@ static PyObject *hashes_get_hashes(PyObject *self, void*)
     return py;
 }
 
-static PyObject *hashes_get_md5(PyObject *self, void*)
-{
-APT_IGNORE_DEPRECATED_PUSH
-    if (PyErr_WarnEx(PyExc_DeprecationWarning,
-                     "md5 is deprecated, use hashes instead", 1) == -1)
-        return NULL;
-    return CppPyString(GetCpp<Hashes>(self).MD5.Result().Value());
-APT_IGNORE_DEPRECATED_POP
-}
-
-static PyObject *hashes_get_sha1(PyObject *self, void*)
-{
-APT_IGNORE_DEPRECATED_PUSH
-    if (PyErr_WarnEx(PyExc_DeprecationWarning,
-                     "sha1 is deprecated, use hashes instead", 1) == -1)
-        return NULL;
-    return CppPyString(GetCpp<Hashes>(self).SHA1.Result().Value());
-APT_IGNORE_DEPRECATED_POP
-}
-
-static PyObject *hashes_get_sha256(PyObject *self, void*)
-{
-APT_IGNORE_DEPRECATED_PUSH
-    if (PyErr_WarnEx(PyExc_DeprecationWarning,
-                     "sha256 is deprecated, use hashes instead", 1) == -1)
-        return NULL;
-    return CppPyString(GetCpp<Hashes>(self).SHA256.Result().Value());
-APT_IGNORE_DEPRECATED_POP
-}
 
 static PyGetSetDef hashes_getset[] = {
     {"hashes",hashes_get_hashes,0,
      "A :class:`HashStringList` of all hashes.\n\n"
      ".. versionadded:: 1.1"},
-    {"md5",hashes_get_md5,0,
-     "The MD5Sum of the file as a string.\n\n"
-     ".. deprecated:: 1.1"},
-    {"sha1",hashes_get_sha1,0,
-     "The SHA1Sum of the file as a string.\n\n"
-     ".. deprecated:: 1.1"},
-    {"sha256",hashes_get_sha256,0,
-     "The SHA256Sum of the file as a string.\n\n"
-     ".. deprecated:: 1.1"},
     {}
 };
 

@@ -1,4 +1,4 @@
-.. highlightlang:: c++
+.. highlight:: c++
 
 Embedding Python APT
 ====================
@@ -27,7 +27,7 @@ type :class:`apt_pkg.HashString`:
 .. literalinclude:: ../../client-example.cc
 
 
-.. highlightlang:: sh
+.. highlight:: sh
 
 If this file were called client-example.cc, you could compile it using::
 

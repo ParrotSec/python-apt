@@ -51,17 +51,23 @@ static PyObject *acquireworker_get_status(PyObject *self, void *closure)
 
 static PyObject *acquireworker_get_current_size(PyObject *self, void *closure)
 {
-    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->CurrentSize);
+    if (GetCpp<pkgAcquire::Worker*>(self)->CurrentItem == nullptr)
+        return 0;
+    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->CurrentItem->CurrentSize);
 }
 
 static PyObject *acquireworker_get_total_size(PyObject *self, void *closure)
 {
-    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->TotalSize);
+    if (GetCpp<pkgAcquire::Worker*>(self)->CurrentItem == nullptr)
+        return 0;
+    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->CurrentItem->TotalSize);
 }
 
 static PyObject *acquireworker_get_resumepoint(PyObject *self, void *closure)
 {
-    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->ResumePoint);
+    if (GetCpp<pkgAcquire::Worker*>(self)->CurrentItem == nullptr)
+        return 0;
+    return MkPyNumber(GetCpp<pkgAcquire::Worker*>(self)->CurrentItem->ResumePoint);
 }
 
 static PyGetSetDef acquireworker_getset[] = {

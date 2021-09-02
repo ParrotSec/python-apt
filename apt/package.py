@@ -28,35 +28,14 @@ import re
 import socket
 import subprocess
 import threading
-threading  # pyflakes
 
-try:
-    from http.client import BadStatusLine
-    from urllib.error import HTTPError
-    from urllib.request import urlopen
-except ImportError:
-    from httplib import BadStatusLine  # type: ignore
-    from urllib2 import HTTPError, urlopen  # type: ignore
+from http.client import BadStatusLine
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
-from collections import Mapping, Sequence
-
-try:
-    from typing import (Any, Iterable, Iterator, List, Optional, Set,
-                        Tuple, Union, no_type_check, overload)
-    Any  # pyflakes
-    Iterable  # pyflakes
-    Iterator  # pyflakes
-    List  # pyflakes
-    Optional  # pyflakes
-    Set  # pyflakes
-    Tuple  # pyflakes
-    Union  # pyflakes
-    overload  # pyflakes
-except ImportError:
-    def no_type_check(arg):
-        # type: (Any) -> Any
-        return arg
-    pass
+from typing import (Any, Iterable, Iterator, List, Optional, Set,
+                    Tuple, Union, no_type_check, Mapping,
+                    Sequence)
 
 import apt_pkg
 import apt.progress.text
@@ -65,29 +44,28 @@ from apt.progress.base import (
     AcquireProgress,
     InstallProgress,
 )
-AcquireProgress  # pyflakes
-InstallProgress  # pyflakes
 
 from apt_pkg import gettext as _
 
 __all__ = ('BaseDependency', 'Dependency', 'Origin', 'Package', 'Record',
            'Version', 'VersionList')
 
-if sys.version_info.major >= 3:
-    unicode = str
 
-
-def _file_is_same(path, size, md5):
-    # type: (str, int, str) -> bool
+def _file_is_same(path, size, hashes):
+    # type: (str, int, apt_pkg.HashStringList) -> bool
     """Return ``True`` if the file is the same."""
     if os.path.exists(path) and os.path.getsize(path) == size:
         with open(path) as fobj:
-            return apt_pkg.md5sum(fobj) == md5
+            return apt_pkg.Hashes(fobj).hashes == hashes
     return False
 
 
 class FetchError(Exception):
     """Raised when a file could not be fetched."""
+
+
+class UntrustedError(FetchError):
+    """Raised when a file did not have a trusted hash."""
 
 
 class BaseDependency(object):
@@ -239,7 +217,7 @@ class BaseDependency(object):
         return self._dep.dep_type_untranslated == 'PreDepends'
 
 
-class Dependency(list):
+class Dependency(List[BaseDependency]):
     """Represent an Or-group of dependencies.
 
     Attributes defined here:
@@ -359,7 +337,7 @@ class Origin(object):
                                             self.site, self.trusted)
 
 
-class Record(Mapping):
+class Record(Mapping[Any, Any]):
     """Record in a Packages file
 
     Represent a record as stored in a Packages file. You can use this like
@@ -404,13 +382,13 @@ class Record(Mapping):
         return iter(self._rec.keys())
 
     def iteritems(self):
-        # type: () -> Iterable
+        # type: () -> Iterable[Tuple[object, str]]
         """An iterator over the (key, value) items of the record."""
         for key in self._rec.keys():
             yield key, self._rec[key]
 
     def get(self, key, default=None):
-        # type: (object, object) -> object
+        # type: (str, object) -> object
         """Return record[key] if key in record, else *default*.
 
         The parameter *default* must be either a string or None.
@@ -443,7 +421,7 @@ class Version(object):
         self.package._pcache._weakversions.add(self)
 
     def _cmp(self, other):
-        # type: (Any) -> Union[int, NotImplemented]
+        # type: (Any) -> Union[int, Any]
         """Compares against another apt.Version object or a version string.
 
         This method behaves like Python 2's cmp builtin and returns an integer
@@ -493,7 +471,7 @@ class Version(object):
         return self._cmp(other) < 0
 
     def __ne__(self, other):
-        # type: (object) -> Union[bool, NotImplemented]
+        # type: (object) -> Union[bool, Any]
         try:
             return self._cmp(other) != 0
         except TypeError:
@@ -516,6 +494,7 @@ class Version(object):
     def _records(self):
         # type: () -> apt_pkg.PackageRecords
         """Internal helper that moves the Records to the right position."""
+        # If changing lookup, change fetch_binary() as well
         if not self.package._pcache._records.lookup(self._cand.file_list[0]):
             raise LookupError("Could not lookup record")
 
@@ -614,7 +593,7 @@ class Version(object):
                      "Please report.") % (self.package.name)
 
         try:
-            if not isinstance(dsc, unicode):
+            if not isinstance(dsc, str):
                 # Only convert where needed (i.e. Python 2.X)
                 dsc = dsc.decode("utf-8")
         except UnicodeDecodeError as err:
@@ -832,8 +811,9 @@ class Version(object):
         except StopIteration:
             return None
 
-    def fetch_binary(self, destdir='', progress=None):
-        # type: (str, AcquireProgress) -> str
+    def fetch_binary(self, destdir='', progress=None,
+                     allow_unauthenticated=None):
+        # type: (str, Optional[AcquireProgress], Optional[bool]) -> str
         """Fetch the binary version of the package.
 
         The parameter *destdir* specifies the directory where the package will
@@ -843,15 +823,39 @@ class Version(object):
         object. If not specified or None, apt.progress.text.AcquireProgress()
         is used.
 
+        The keyword-only parameter *allow_unauthenticated* specifies whether
+        to allow unauthenticated downloads. If not specified, it defaults to
+        the configuration option `APT::Get::AllowUnauthenticated`.
+
         .. versionadded:: 0.7.10
         """
+        if allow_unauthenticated is None:
+            allow_unauthenticated = apt_pkg.config.find_b("APT::Get::"
+                                        "AllowUnauthenticated", False)
         base = os.path.basename(self._records.filename)
         destfile = os.path.join(destdir, base)
-        if _file_is_same(destfile, self.size, self._records.md5_hash):
+        if _file_is_same(destfile, self.size, self._records.hashes):
             logging.debug('Ignoring already existing file: %s' % destfile)
             return os.path.abspath(destfile)
+
+        # Verify that the index is actually trusted
+        pfile, offset = self._cand.file_list[0]
+        index = self.package._pcache._list.find_index(pfile)
+
+        if not (allow_unauthenticated or (index and index.is_trusted)):
+            raise UntrustedError("Could not fetch %s %s source package: "
+                                 "Source %r is not trusted" %
+                                 (self.package.name, self.version,
+                                  getattr(index, "describe", "<unkown>")))
+        if not self.uri:
+            raise ValueError("No URI for this binary.")
+        hashes = self._records.hashes
+        if not (allow_unauthenticated or hashes.usable):
+            raise UntrustedError("The item %r could not be fetched: "
+                                     "No trusted hash found." %
+                                     destfile)
         acq = apt_pkg.Acquire(progress or apt.progress.text.AcquireProgress())
-        acqfile = apt_pkg.AcquireFile(acq, self.uri, self._records.md5_hash,  # type: ignore # TODO: Do not use MD5 # nopep8
+        acqfile = apt_pkg.AcquireFile(acq, self.uri, hashes,
                                       self.size, base, destfile=destfile)
         acq.run()
 
@@ -861,8 +865,9 @@ class Version(object):
 
         return os.path.abspath(destfile)
 
-    def fetch_source(self, destdir="", progress=None, unpack=True):
-        # type: (str, AcquireProgress, bool) -> str
+    def fetch_source(self, destdir="", progress=None, unpack=True,
+                     allow_unauthenticated=None):
+        # type: (str, Optional[AcquireProgress], bool, Optional[bool]) -> str
         """Get the source code of a package.
 
         The parameter *destdir* specifies the directory where the source will
@@ -877,7 +882,15 @@ class Version(object):
 
         If *unpack* is ``True``, the path to the extracted directory is
         returned. Otherwise, the path to the .dsc file is returned.
+
+        The keyword-only parameter *allow_unauthenticated* specifies whether
+        to allow unauthenticated downloads. If not specified, it defaults to
+        the configuration option `APT::Get::AllowUnauthenticated`.
         """
+        if allow_unauthenticated is None:
+            allow_unauthenticated = apt_pkg.config.find_b("APT::Get::"
+                                        "AllowUnauthenticated", False)
+
         src = apt_pkg.SourceRecords()
         acq = apt_pkg.Acquire(progress or apt.progress.text.AcquireProgress())
 
@@ -892,16 +905,28 @@ class Version(object):
         if not source_lookup:
             raise ValueError("No source for %r" % self)
         files = list()
-        for md5, size, path, type_ in src.files:
-            base = os.path.basename(path)
+
+        if not (allow_unauthenticated or src.index.is_trusted):
+            raise UntrustedError("Could not fetch %s %s source package: "
+                                 "Source %r is not trusted" %
+                                 (self.package.name, self.version,
+                                  src.index.describe))
+        for fil in src.files:
+            base = os.path.basename(fil.path)
             destfile = os.path.join(destdir, base)
-            if type_ == 'dsc':
+            if fil.type == 'dsc':
                 dsc = destfile
-            if _file_is_same(destfile, size, md5):
+            if _file_is_same(destfile, fil.size, fil.hashes):
                 logging.debug('Ignoring already existing file: %s' % destfile)
                 continue
-            files.append(apt_pkg.AcquireFile(acq, src.index.archive_uri(path),
-                         md5, size, base, destfile=destfile))
+
+            if not (allow_unauthenticated or fil.hashes.usable):
+                raise UntrustedError("The item %r could not be fetched: "
+                                         "No trusted hash found." %
+                                         destfile)
+            files.append(apt_pkg.AcquireFile(acq,
+                            src.index.archive_uri(fil.path),
+                            fil.hashes, fil.size, base, destfile=destfile))
         acq.run()
 
         if dsc is None:
@@ -921,7 +946,7 @@ class Version(object):
             return os.path.abspath(dsc)
 
 
-class VersionList(Sequence):
+class VersionList(Sequence[Version]):
     """Provide a mapping & sequence interface to all versions of a package.
 
     This class can be used like a dictionary, where version strings are the
@@ -942,7 +967,7 @@ class VersionList(Sequence):
     """
 
     def __init__(self, package, slice_=None):
-        # type: (Package, slice) -> None
+        # type: (Package, Optional[slice]) -> None
         self._package = package  # apt.package.Package()
         self._versions = package._pkg.version_list  # [apt_pkg.Version(), ...]
         if slice_:
@@ -1006,7 +1031,7 @@ class VersionList(Sequence):
         # type: (str, Optional[Version]) -> Optional[Version]
         """Return the key or the default."""
         try:
-            return self[key]  # type: ignore  # FIXME: should be deterined automatically # nopep8
+            return self[key]  # type: ignore  # FIXME: should be deterined automatically # noqa
         except LookupError:
             return default
 
@@ -1137,12 +1162,6 @@ class Package(object):
         """
         return self._pkg.architecture
 
-    @property
-    def section(self):
-        # type: () -> str
-        """Return the section of the package."""
-        return self._pkg.section
-
     # depcache states
 
     @property
@@ -1232,7 +1251,7 @@ class Package(object):
         return []
 
     def get_changelog(self, uri=None, cancel_lock=None):
-        # type: (str, threading.Event) -> str
+        # type: (Optional[str], Optional[threading.Event]) -> str
         """
         Download the changelog of the package and return it as unicode
         string.
@@ -1267,7 +1286,7 @@ class Package(object):
                       "/%(src_pkg)s_%(src_ver)s/changelog"
             else:
                 res = _("The list of changes is not available")
-                if isinstance(res, unicode):
+                if isinstance(res, str):
                     return res
                 else:
                     return res.decode("utf-8")
@@ -1376,7 +1395,7 @@ class Package(object):
                 # Print an error if we failed to extract a changelog
                 if len(changelog) == 0:
                     changelog = _("The list of changes is not available")
-                    if not isinstance(changelog, unicode):
+                    if not isinstance(changelog, str):
                         changelog = changelog.decode("utf-8")
                 self._changelog = changelog
 
@@ -1390,14 +1409,14 @@ class Package(object):
                             "later.") % (src_pkg, src_ver)
                 else:
                     res = _("The list of changes is not available")
-                if isinstance(res, unicode):
+                if isinstance(res, str):
                     return res
                 else:
                     return res.decode("utf-8")
             except (IOError, BadStatusLine):
                 res = _("Failed to download the list of changes. \nPlease "
                         "check your Internet connection.")
-                if isinstance(res, unicode):
+                if isinstance(res, str):
                     return res
                 else:
                     return res.decode("utf-8")
@@ -1459,7 +1478,6 @@ class Package(object):
             fix.clear(self._pkg)
             fix.protect(self._pkg)
             fix.remove(self._pkg)
-            fix.install_protect()
             fix.resolve()
         self._pcache.cache_post_change()
 

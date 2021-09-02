@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Example for packages. Print all essential and important packages"""
 
 import apt_pkg

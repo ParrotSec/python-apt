@@ -3,6 +3,6 @@
 set -e
 
 # from debian/rules
-for python in $(utils/pyversions -r); do
+for python in $(py3versions -s); do
     $python tests/test_all.py -q
 done

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # example how to deal with the depcache
 
 import apt
@@ -22,10 +22,10 @@ class TextInstallProgress(InstallProgress):
         self.last = self.percent
 
     def conffile(self, current, new):
-        print "conffile prompt: %s %s" % (current, new)
+        print("conffile prompt: %s %s" % (current, new))
 
     def error(self, errorstr):
-        print "got dpkg error: '%s'" % errorstr
+        print("got dpkg error: '%s'" % errorstr)
 
 
 cache = apt.Cache(apt.progress.OpTextProgress())
@@ -37,12 +37,12 @@ pkg = cache["3dchess"]
 
 # install or remove, the importend thing is to keep us busy :)
 if pkg.is_installed:
-    print "Going to delete %s" % pkg.name
+    print("Going to delete %s" % pkg.name)
     pkg.mark_delete()
 else:
-    print "Going to install %s" % pkg.name
+    print("Going to install %s" % pkg.name)
     pkg.mark_install()
 res = cache.commit(fprogress, iprogress)
-print res
+print(res)
 
 sys.exit(0)

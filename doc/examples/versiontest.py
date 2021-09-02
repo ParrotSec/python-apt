@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This is a simple clone of tests/versiontest.cc
 import apt_pkg
@@ -10,7 +10,7 @@ apt_pkg.init_system()
 
 TestFile = apt_pkg.parse_commandline(apt_pkg.config, [], sys.argv)
 if len(TestFile) != 1:
-    print "Must have exactly 1 file name"
+    print("Must have exactly 1 file name")
     sys.exit(0)
 
 # Go over the file..
@@ -29,11 +29,11 @@ while(1):
 
     # Check forward
     if apt_pkg.version_compare(Split[0], Split[1]) != int(Split[2]):
-        print "Comparision failed on line %u. '%s' ? '%s' %i != %i" % (CurLine,
+        print("Comparision failed on line %u. '%s' ? '%s' %i != %i" % (CurLine,
             Split[0], Split[1], apt_pkg.version_compare(Split[0], Split[1]),
-            int(Split[2]))
+            int(Split[2])))
     # Check reverse
     if apt_pkg.version_compare(Split[1], Split[0]) != -1 * int(Split[2]):
-        print "Comparision failed on line %u. '%s' ? '%s' %i != %i" % (CurLine,
+        print("Comparision failed on line %u. '%s' ? '%s' %i != %i" % (CurLine,
             Split[1], Split[0], apt_pkg.version_compare(Split[1], Split[0]),
-            -1 * int(Split[2]))
+            -1 * int(Split[2])))

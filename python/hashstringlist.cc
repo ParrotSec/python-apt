@@ -51,10 +51,12 @@ static PyObject *hashstringlist_find(PyObject *self, PyObject *args)
     if (PyArg_ParseTuple(args, "|s", &type) == 0)
         return 0;
 
-    HashString *hs = new HashString;
-    *hs = *(GetCpp<HashStringList>(self).find(type));
+    const HashString *hsf = GetCpp<HashStringList>(self).find(type);
+    if (hsf == nullptr)
+        return PyErr_Format(PyExc_KeyError, "Could not find hash type %s", type);
 
-    return HandleErrors(PyHashString_FromCpp(hs, true, nullptr));
+
+    return HandleErrors(PyHashString_FromCpp(new HashString(*hsf), true, nullptr));
 }
 
 static const char hashstringlist_append_doc[] =
@@ -90,6 +92,9 @@ static PyObject *hashstringlist_verify_file(PyObject *self, PyObject *args)
 
 static PyObject *hashstringlist_get_file_size(PyObject *self, void*) {
     return MkPyNumber(GetCpp<HashStringList>(self).FileSize());
+}
+static PyObject *hashstringlist_get_usable(PyObject *self, void*) {
+    return PyBool_FromLong(GetCpp<HashStringList>(self).usable());
 }
 
 static int hashstringlist_set_file_size(PyObject *self, PyObject *value, void *) {
@@ -159,6 +164,8 @@ static PyMethodDef hashstringlist_methods[] =
 static PyGetSetDef hashstringlist_getset[] = {
     {"file_size",hashstringlist_get_file_size,hashstringlist_set_file_size,
      "If a file size is part of the list, return it, otherwise 0."},
+    {"usable",hashstringlist_get_usable,nullptr,
+     "True if at least one safe/trusted hash is in the list."},
     {}
 };
 

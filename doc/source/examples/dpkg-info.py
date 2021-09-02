@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Emulate dpkg --info package.deb control-file"""
 
 from __future__ import print_function

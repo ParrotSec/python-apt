@@ -1,8 +1,386 @@
-python-apt (1.7.0+parrot1) testing; urgency=medium
+python-apt (2.2.1+parrot1) lts-updates; urgency=medium
 
-  * Import new upstream release.
+  * Add Parrot Security support.
 
- -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 14 Oct 2018 21:13:37 +0200
+ -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Thu, 02 Sep 2021 17:19:06 +0200
+
+python-apt (2.2.1) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Apply multi-arch hints
+    - python-apt-common: Add Multi-Arch: foreign (Closes: #968458)
+
+  [ Julian Andres Klode ]
+  * Updated mirror lists (and mirror list location for Debian)
+
+ -- Julian Andres Klode <jak@debian.org>  Sun, 04 Jul 2021 13:57:51 +0200
+
+python-apt (2.2.0) unstable; urgency=medium
+
+  [ Helmut Grohne ]
+  * Annotate test dependencies with <!nocheck> (Closes: #980719)
+
+  [ Julian Andres Klode ]
+  * debian/rules: Re-enable PIE hardening
+  * Mirror list updates
+  * debfile: Pass `Name` instead of `Binary` to ExtractTar.
+    Passing the binary causes it to fail trying to find the `false`
+    compressor when a binary for a given compressor is not installed.
+    (LP: #1926437)
+  * debian/gbp.conf: Branch name is main
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 29 Apr 2021 09:49:08 +0200
+
+python-apt (2.1.7) unstable; urgency=medium
+
+  * SECURITY UPDATE: various memory and file descriptor leaks (LP: #1899193)
+    - python/arfile.cc, python/generic.h, python/tag.cc, python/tarfile.cc:
+      fix file descriptor and memory leaks
+    - python/apt_instmodule.cc, python/apt_instmodule.h, python/arfile.h:
+      Avoid reference cycle with control,data members in apt_inst.DebFile
+      objects
+    - tests/test_cve_2020_27351.py: Test cases for DebFile (others not easily
+      testable)
+  * Regression fixes for the updates merged too:
+    - arfile.cc: Fix segmentation fault when opening fd, track lifetime correctly
+      (Closes: #977000)
+    - arfile: Regression: Collect file<->deb/ar reference cycles
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 10 Dec 2020 15:35:32 +0100
+
+python-apt (2.1.6) unstable; urgency=medium
+
+  [ Julian Andres Klode ]
+  * Rename Cdrom and Disc to Installation medium (LP: #1849406)
+  * hashes: Release GIL while hashing stuff
+
+  [ Niels Thykier ]
+  * Correct error message in hashes.cc
+
+ -- Julian Andres Klode <jak@debian.org>  Wed, 25 Nov 2020 12:47:37 +0100
+
+python-apt (2.1.5) unstable; urgency=medium
+
+  * Do not require hardcoding release names in distro info, cleanup Debian and Ubuntu
+    (LP: #1727470)
+  * Debian: use -security instead of /updates for >= 11
+
+ -- Julian Andres Klode <jak@debian.org>  Tue, 27 Oct 2020 21:27:56 +0100
+
+python-apt (2.1.4) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Trim trailing whitespace.
+  * Wrap long lines in changelog entries: 1.9.9, 1.7.0~alpha1,
+    1.1.0~alpha1, 0.9.4, 0.9.3.4.
+  * Update standards version to 4.5.0, no changes needed.
+
+  [ Dave Jones ]
+  * Fix ftbfs with sphinx 3.x (Closes: #963655)
+
+  [ Julian Andres Klode ]
+  * Make pycodestyle happy
+  * Pacify mypy 0.790 for NotImplemented returns
+  * gitlab-ci: Pull debian:unstable, not ubuntu:focal
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 15 Oct 2020 14:25:06 +0200
+
+python-apt (2.1.3) unstable; urgency=medium
+
+  * data/templates/Ubuntu.info.in: Add groovy (LP: #1874880)
+
+ -- Julian Andres Klode <jak@debian.org>  Sat, 25 Apr 2020 13:05:50 +0200
+
+python-apt (2.1.2) unstable; urgency=medium
+
+  * Use pybuild to split out -dbg stuff, avoid .install/.files (Closes: #958118)
+  * Remove Python 2 and old pyflakes hacks
+
+ -- Julian Andres Klode <jak@debian.org>  Mon, 20 Apr 2020 18:16:28 +0200
+
+python-apt (2.1.1) unstable; urgency=medium
+
+  * Make python-apt-dev depend on python3-apt, not python-apt
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 16 Apr 2020 09:54:42 +0200
+
+python-apt (2.1.0) unstable; urgency=medium
+
+  [ Gordon Ball ]
+  * Use pyflakes3 instead of (python 2) pyflakes
+
+  [ Julian Andres Klode ]
+  * Stop building for Python 2 (Closes: #937579)
+  * Remove Python 2 autopkgtests
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 16 Apr 2020 09:46:49 +0200
+
+python-apt (2.0.0) unstable; urgency=medium
+
+  [ Valters Jansons ]
+  * aptsources: Allow non-existent `source.list` file
+
+  [ Julian Andres Klode ]
+  * Workaround mypy 0.770
+  * whatsnew: Move 1.9 development series to 2.0
+  * Update mirror lists
+  * Add redundant python{,3}-all build depends for lintian
+
+  [ Simon Poirier ]
+  * Decode locale-encoded descriptions.
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 09 Apr 2020 09:16:18 +0200
+
+python-apt (1.9.10) unstable; urgency=medium
+
+  * Improve type annotations for apt_pkg.TagFile and apt_pkg.TagSection.
+    Thanks to Stuart Prescott for the report that object was ... wrong
+  * Break broken kthresher and apt-xapian-index versions
+
+ -- Julian Andres Klode <jak@debian.org>  Sun, 08 Mar 2020 15:16:44 +0100
+
+python-apt (1.9.9) unstable; urgency=medium
+
+  [ Julian Andres Klode ]
+  * Upload to unstable
+
+  [ Dan Streetman ]
+  * distinfo: correct subprocess usage
+  * sourceslist: in __find() rstrip / from uri when comparing
+  * test: add test to verify identical entries except trailing slash are
+    considered equal
+
+ -- Julian Andres Klode <jak@debian.org>  Sat, 07 Mar 2020 21:26:04 +0100
+
+python-apt (1.9.8) experimental; urgency=medium
+
+  * Fix build against apt 1.9.11 (Index -> MapPointer)
+
+ -- Julian Andres Klode <jak@debian.org>  Wed, 26 Feb 2020 21:32:54 +0100
+
+python-apt (1.9.7) experimental; urgency=medium
+
+  * debian/tests/run-tests: Use py{3,}versions -s, not py{,3}versions -r;
+    fixes regression in autopkgtest due to stderr output.
+
+ -- Julian Andres Klode <jak@debian.org>  Sat, 22 Feb 2020 17:51:04 +0100
+
+python-apt (1.9.6) experimental; urgency=medium
+
+  [ dann frazier ]
+  * Drop remaining references to pep8
+
+  [ Dan Streetman ]
+  * when comparing SourceEntries, rstrip '/' from uris
+
+  [ Julian Andres Klode ]
+  * gitlab-ci: pull from focal
+  * Use debhelper-compat (= 12) instead of debian/compat 9
+  * Use pybuild for building
+  * gitlab-ci.yml: Publish html doc build by package, do not rebuild
+  * Correctly install dbg variants of modules for python 3.8
+  * gitlab-ci: Add daily built apt PPA
+  * Switch from removed Summation classes to Hashes class
+  * policy: Add set_priority(PackageFile, int)
+  * policy: If no candidate version could be found, return None.
+    This used to return an invalid Version object, pointing to 0,
+    leading to crashes.
+
+  [ Dan Ryan ]
+  * Add conditional import guards in `setup.py`
+  * Migrate build and install to `setuptools`
+  * Remove -Wstrict-prototypes compiler flag
+
+ -- Julian Andres Klode <jak@debian.org>  Fri, 21 Feb 2020 17:45:55 +0100
+
+python-apt (1.9.5) experimental; urgency=medium
+
+  [ Marc Deslauriers ]
+  * SECURITY REGRESSION: crash with ubuntu-release-upgrader (LP: #1860606)
+    - apt/cache.py: make allow_unauthenticated argument to
+      fetch_archives() optional.
+
+  [ Julian Andres Klode ]
+  * Really bump aptdaemon break (to 1.1.1+bzr982-0ubuntu31)
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 23 Jan 2020 10:55:46 +0100
+
+python-apt (1.9.4) experimental; urgency=medium
+
+  * SECURITY UPDATE: Check that repository is trusted before downloading
+    files from it (LP: #1858973)
+    - apt/cache.py: Add checks to fetch_archives() and commit()
+    - apt/package.py: Add checks to fetch_binary() and fetch_source()
+    - CVE-2019-15796
+  * To work around the new checks, the parameter allow_unauthenticated=True
+    can be passed to the functions. It defaults to the value of the
+    APT::Get::AllowUnauthenticated option.
+    - Bump Breaks aptdaemon (<< 1.1.1+bzr982-0ubuntu21.2), as it will have
+      to set that parameter after having done validation.
+  * Revert "apt.Cache: cache apt.package.Origin objects by id"
+  * InstallProgress: Move set_inheritable into if pid == 0
+
+ -- Julian Andres Klode <jak@debian.org>  Wed, 15 Jan 2020 16:46:29 +0100
+
+python-apt (1.9.3) experimental; urgency=medium
+
+  [ Dave Jones ]
+  * aptsources: Fix comment handling in add (regression from 1.9.1)
+
+ -- Julian Andres Klode <jak@debian.org>  Fri, 13 Dec 2019 18:42:26 +0100
+
+python-apt (1.9.2) experimental; urgency=medium
+
+  * SECURITY UPDATE: Check that we have trusted hashes when downloading
+    in fetch_binary() / fetch_source() (1.9.1 regression) (Closes: #946597)
+
+ -- Julian Andres Klode <jak@debian.org>  Thu, 12 Dec 2019 18:27:02 +0100
+
+python-apt (1.9.1) experimental; urgency=medium
+
+  [ Julian Andres Klode ]
+  * Install type information according to PEP561
+  * Temporarily perform CI on eoan only
+  * Adjust to mypy 0.710
+  * doc/examples: Convert to Python 3
+  * Convert all shebangs to python3
+  * gitlab-ci: Run 3 separate test stages
+  * pep8: Fix overindent issues
+  * ./doc/examples/dependant-pkgs.py: Make it work again
+  * Fix segmentation fault for apt_pkg.Cache.policy
+  * test_policy: Fix pyflakes issue
+  * apt.Cache: cache apt.package.Origin objects by id
+  * Adjust for PY_SSIZE_T_CLEAN (Closes: #944091)
+  * Turn InstallProgress into a context manager to avoid leaking files
+  * AcquireFile: Remove md5 parameter
+  * AcquireFile: Accept HashStringList in hash parameter
+  * apt/package.py: Use all hashes when fetching packages
+  * Remove leftover MD5 use in Version.fetch_binary() (Closes: #944696)
+  * Fix type hints
+  * typehinting: Override TagSection.get()
+  * debian/control: Rules-Requires-Root: no, Standards-Version upgrade
+  * Update po template
+  * Fix pre-build script to actually work in Python 3
+  * Run the pre-build script
+  * lintian fixes
+    - fix typo in changelog error
+    - remove use of extra priority
+    - override uses-dpkg-database-directly for the root location switching magic
+  * Remove spurious python-debian test dependency (see bug #937579)
+  * Build-Depend on pycodestyle, not pep8
+
+  [ Raphaël Hertzog ]
+  * Add Kali templates
+
+  [ Colomban Wendling ]
+  * Fix InstallProgress for installing .deb files on Python >= 3.4
+  * Add a test case for checking the communication with dpkg works
+
+  [ Michael Vogt ]
+  * apt, python: make `mypy --strict` clean
+
+  [ Matthias Klose ]
+  * data/templates/Ubuntu.info.in: Add focal
+
+  [ Dave Jones ]
+  * Don't duplicate disabled sources during add() (LP: #1311056)
+
+ -- Julian Andres Klode <jak@debian.org>  Wed, 11 Dec 2019 16:17:24 +0100
+
+python-apt (1.9.0) experimental; urgency=medium
+
+  * python/pkgsrcrecords.cc: Improve readability of ...BuildDepends
+  * Port to APT 1.9.0; incompatible changes:
+    - Remove install_protect() methods
+    - Remove Package.section attributes
+    - Remove apt_pkg.rewrite_section()
+    - Remove unnecessary sptr includes
+    - apt_pkg.Hashes: remove md5, sha1, sha256 members
+    - Port install progress to APT::Progress::PackageManagerProgressFd
+    - apt_pkg.SourceRecords: Set md5 to None in tuple compat
+    - Remove apt_pkg.Policy(: Package) variant
+    - Remove Policy.get_match() method
+    - Add apt_pkg.TagSection.write() method
+    - apt_pkg.Hashes:
+      + Make comparable
+      + add hashvalue attribute
+    - debian/control: Bump libapt-pkg-dev b-d to 1.9.0~
+  * data/templates/Ubuntu.info.in: Add Eoan Ermine
+  * Bug fixes:
+    - apt_pkg.TagRemove: Terminate keyword list array in constructor
+    - apt_pkg.HashStringList: Avoid nullptr dereference on no result
+
+ -- Julian Andres Klode <jak@debian.org>  Mon, 24 Jun 2019 15:54:56 +0200
+
+python-apt (1.8.5) unstable; urgency=medium
+
+  * SECURITY UPDATE: Check that repository is trusted before downloading
+    files from it (LP: #1858973)
+    - apt/cache.py: Add checks to fetch_archives() and commit()
+    - apt/package.py: Add checks to fetch_binary() and fetch_source()
+    - CVE-2019-15796
+  * SECURITY UPDATE: Do not use MD5 for verifying downloadeds
+    (Closes: #944696) (#LP: #1858972)
+    - apt/package.py: Use all hashes when fetching packages, and
+      check that we have trusted hashes when downloading
+    - CVE-2019-15795
+  * To work around the new checks, the parameter allow_unauthenticated=True
+    can be passed to the functions. It defaults to the value of the
+    APT::Get::AllowUnauthenticated option.
+    - Bump Breaks aptdaemon (<< 1.1.1+bzr982-0ubuntu21.2), as it will have
+      to set that parameter after having done validation.
+  * Automatic changes and fixes for external regressions:
+    - Adjustments to test suite and CI to fix CI regressions
+    - Automatic mirror list update
+    - d/tests/control: Add "Restrictions: allow-stderr" (Closes: #947794)
+
+ -- Julian Andres Klode <jak@debian.org>  Wed, 15 Jan 2020 16:46:29 +0100
+
+python-apt (1.8.4) unstable; urgency=medium
+
+  * apt.Cache: Fix (un)locking in various places
+    - Fix (un)locking of archives (Closes: #922416)
+    - Use explicit, more safe locking in update()
+  * Update mirror lists
+
+ -- Julian Andres Klode <jak@debian.org>  Mon, 11 Mar 2019 12:49:18 +0100
+
+python-apt (1.8.3) unstable; urgency=medium
+
+  * test_aptsources: Fix test if current distribution does not exist
+
+ -- Julian Andres Klode <jak@debian.org>  Mon, 04 Feb 2019 12:50:31 +0100
+
+python-apt (1.8.2) unstable; urgency=medium
+
+  * Add a init_defaults() method to apt_pkg.Policy
+  * Document what's new in 1.8
+
+ -- Julian Andres Klode <jak@debian.org>  Fri, 01 Feb 2019 17:09:15 +0100
+
+python-apt (1.8.1) unstable; urgency=medium
+
+  * python/arfile.cc: Fix FTBFS due to copying of FileFd
+  * Revert "debian/rules: Build with pybuild"
+  * Adjust typing for mypy 0.660
+
+ -- Julian Andres Klode <jak@debian.org>  Fri, 25 Jan 2019 20:40:39 +0100
+
+python-apt (1.8.0) unstable; urgency=medium
+
+  [ Julian Andres Klode ]
+  * templates: Add Ubuntu 19.04 'Disco Dingo'
+  * travis: Disable CI on debian:stretch and ubuntu:bionic
+  * Switch to python3-distutils-extra from python2 one
+  * Drop unnecessary python3-distutils build-depend workaround
+  * debian/rules: Build with pybuild
+  * travis: Test on disco
+
+  [ Jeremy Bicha ]
+  * data/templates/Debian.info.in: Add Buster and Bullseye
+    (Closes: #919613, #919615)
+
+ -- Julian Andres Klode <jak@debian.org>  Fri, 18 Jan 2019 13:41:16 +0100
 
 python-apt (1.7.0) unstable; urgency=medium
 
@@ -10,12 +388,6 @@ python-apt (1.7.0) unstable; urgency=medium
   * as usual; updated mirror lists
 
  -- Julian Andres Klode <jak@debian.org>  Wed, 10 Oct 2018 17:39:25 +0200
-
-python-apt (1.7.0~rc1+parrot1) testing; urgency=medium
-
-  * Import new Debian release.
-
- -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 07 Oct 2018 01:16:04 +0200
 
 python-apt (1.7.0~rc1) unstable; urgency=medium
 
@@ -43,7 +415,7 @@ python-apt (1.7.0~alpha2) experimental; urgency=medium
   * Add more extensive test cases for cache remapping
   * Do not override __hash__ in apt.package.Package (LP: #1780099)
   * debian/python-apt.docs: README is README.md since some time
-  * apt.Cache: Avoid unneccessary double weakref checks for __getitem__
+  * apt.Cache: Avoid unnecessary double weakref checks for __getitem__
   * apt.Cache: Use weakref.setdefault to find existing Package objects
   * debian/control: Point to salsa instead of anonscm
   * debian/control: Drop obsolete Python-Versions fields
@@ -67,13 +439,15 @@ python-apt (1.7.0~alpha1) experimental; urgency=medium
   * Fix some more type annotations for apt_pkg, complete apt.utils typing
   * apt.Cache: Remap objects when reopening cache
     (LP: #1773316)
-  * apt_pkg.DepCache: Raise CacheMismatchError if argument belongs to diff. cache
+  * apt_pkg.DepCache: Raise CacheMismatchError if argument belongs to diff.
+    cache
   * apt.Cache: Complete types
   * Completely type apt.progress
   * typehinting: Add missing type hints for unattended-upgrades
   * Complete typing for apt.auth
   * apt.debfile: Avoid exception in replaces_real_pkg for no-candidate packages
-  * apt.debfile.DebPackage: Handle no-candidate package in _maybe_append_multiarch_suffix
+  * apt.debfile.DebPackage: Handle no-candidate package in
+    _maybe_append_multiarch_suffix
   * Completely type apt.debfile
   * utils/get_debian_mirrors.py: Get data from salsa
   * apt.package: Add almost complete typing
@@ -89,13 +463,6 @@ python-apt (1.7.0~alpha1) experimental; urgency=medium
   * fix SourceRecordsFile class reference
 
  -- Julian Andres Klode <jak@debian.org>  Mon, 25 Jun 2018 11:29:01 +0200
-
-python-apt (1.6.1+parrot0) testing; urgency=medium
-
-  * Non-maintainer upload.
-  * Add Parrot support.
-
- -- Lorenzo "Palinuro" Faletra <palinuro@parrotsec.org>  Sun, 08 Jul 2018 17:29:51 +0200
 
 python-apt (1.6.0) unstable; urgency=medium
 
@@ -330,7 +697,8 @@ python-apt (1.1.0~alpha2) experimental; urgency=medium
 python-apt (1.1.0~alpha1) experimental; urgency=medium
 
   [ Michael Vogt ]
-  * apt/debfile.py: use apt_pkg.open_maybe_clear_signed_file() when opening a .dsc file
+  * apt/debfile.py: use apt_pkg.open_maybe_clear_signed_file() when opening a
+    .dsc file
 
   [ Julian Andres Klode ]
   * Drop apt_pkg.IndexRecords, it has been dropped in experimental
@@ -488,7 +856,8 @@ python-apt (0.9.4) unstable; urgency=medium
   [ Michael Vogt ]
   * add apt_pkg.sha512sum()
   * Add binding for apt_pkg.maybe_open_clear_signed_file()
-  * apt/debfile.py: use apt_pkg.open_maybe_clear_signed_file() when opening a .dsc file
+  * apt/debfile.py: use apt_pkg.open_maybe_clear_signed_file() when opening a
+    .dsc file
   * Update doc/example/action.py for py3 and latest API (closes: #782335)
   * Add MULTI_ARCH_NO constant and deprecate MULTI_ARCH_NONE (closes: #782802)
   * Fix dead links in python-apt documentation (Closes: #779426)
@@ -597,8 +966,8 @@ python-apt (0.9.3.4) unstable; urgency=medium
   * utils/get_*_mirrors*.py: Ensure failure if no mirrors were read
   * utils/get_*_mirrors*.py: Use sys.stderr.write instead of print
   * Support all compressors for data.tar/control.tar (Closes: #718330)
-  * Revert "aptsources/sourceslist.py: ensure that our sources are opened with UTF-8"
-    (Closes: #742118)
+  * Revert "aptsources/sourceslist.py: ensure that our sources are opened with
+    UTF-8" (Closes: #742118)
 
  -- Julian Andres Klode <jak@debian.org>  Thu, 20 Mar 2014 16:48:12 +0100
 

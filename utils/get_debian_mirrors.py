@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #  get_debian_mirrors.py - Parse Mirrors.masterlist and create a mirror list.
 #
 #  Copyright (c) 2010-2011 Julian Andres Klode <jak@debian.org>
@@ -20,13 +20,12 @@
 from __future__ import print_function
 import collections
 import sys
-import urllib2
-from debian_bundle import deb822
+import urllib.request
+from debian import deb822
 
 mirrors = collections.defaultdict(set)
-masterlist = urllib2.urlopen("https://salsa.debian.org/mirror-team/"
-                             "masterlist/raw/master/"
-                             "Mirrors.masterlist")
+masterlist = urllib.request.urlopen("https://mirror-master.debian.org/"
+                                    "status/Mirrors.masterlist")
 
 for mirror in deb822.Deb822.iter_paragraphs(masterlist):
     if "Country" not in mirror:

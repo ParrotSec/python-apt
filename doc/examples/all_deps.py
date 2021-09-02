@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 import sys
 
 import apt
@@ -29,8 +29,8 @@ pkg = c[pkgname]
 deps = set()
 
 deps = dependencies(c, pkg, deps, "Depends")
-print " ".join(deps)
+print(" ".join(deps))
 
 preDeps = set()
 preDeps = dependencies(c, pkg, preDeps, "PreDepends")
-print " ".join(preDeps)
+print(" ".join(preDeps))

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Example demonstrating how to use the configuration/commandline system
 # for configuration.
 # Some valid command lines..
@@ -23,7 +23,7 @@ import posixpath
 # whenever possible..
 Cnf = apt_pkg.Configuration()
 
-print "Command line is", sys.argv
+print("Command line is", sys.argv)
 
 # Load the default configuration file, init_config() does this better..
 Cnf.set("config-file", "/etc/apt/apt.conf")  # or Cnf["config-file"] = ".."
@@ -36,23 +36,23 @@ Arguments = [('h', "help", "help"),
              ('q', "quiet", "quiet", "IntLevel"),
              ('c', "config-file", "", "ConfigFile"),
              ('o', "option", "", "ArbItem")]
-print "FileNames", apt_pkg.parse_commandline(Cnf, Arguments, sys.argv)
+print("FileNames", apt_pkg.parse_commandline(Cnf, Arguments, sys.argv))
 
-print "Quiet level selected is", Cnf.find_i("quiet", 0)
+print("Quiet level selected is", Cnf.find_i("quiet", 0))
 
 # Do some stuff with it
 if Cnf.find_b("version", 0) == 1:
-    print "Version selected - 1.1"
+    print("Version selected - 1.1")
 
 if Cnf.find_b("help", 0) == 1:
-    print "python-apt", apt_pkg.VERSION, \
-          "compiled on", apt_pkg.DATE, apt_pkg.TIME
-    print "Hi, I am the help text for this program"
+    print("python-apt", apt_pkg.VERSION,
+          "compiled on", apt_pkg.DATE, apt_pkg.TIME)
+    print("Hi, I am the help text for this program")
     sys.exit(0)
 
-print "No help for you, try -h"
+print("No help for you, try -h")
 
 # Print the configuration space
-print "The Configuration space looks like:"
-for I in Cnf.keys():
-    print "%s \"%s\";" % (I, Cnf[I])
+print("The Configuration space looks like:")
+for item in list(Cnf.keys()):
+    print("%s \"%s\";" % (item, Cnf[item]))

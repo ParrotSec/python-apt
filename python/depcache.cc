@@ -15,7 +15,6 @@
 #include <apt-pkg/cachefile.h>
 #include <apt-pkg/algorithms.h>
 #include <apt-pkg/policy.h>
-#include <apt-pkg/sptr.h>
 #include <apt-pkg/configuration.h>
 #include <apt-pkg/error.h>
 #include <apt-pkg/pkgsystem.h>
@@ -936,17 +935,6 @@ static PyObject *PkgProblemResolverClear(PyObject *Self,PyObject *Args)
    return HandleErrors(Py_None);
 }
 
-static PyObject *PkgProblemResolverInstallProtect(PyObject *Self,PyObject *Args)
-{
-   pkgProblemResolver *fixer = GetCpp<pkgProblemResolver *>(Self);
-   if (PyArg_ParseTuple(Args,"") == 0)
-      return 0;
-APT_IGNORE_DEPRECATED_PUSH
-   fixer->InstallProtect();
-APT_IGNORE_DEPRECATED_POP
-   Py_INCREF(Py_None);
-   return HandleErrors(Py_None);
-}
 
 static PyMethodDef PkgProblemResolverMethods[] =
 {
@@ -961,9 +949,6 @@ static PyMethodDef PkgProblemResolverMethods[] =
    {"clear", PkgProblemResolverClear, METH_VARARGS,
     "clear(pkg: apt_pkg.Package)\n\n"
     "Revert the actions done by protect()/remove() on the package."},
-   {"install_protect", PkgProblemResolverInstallProtect, METH_VARARGS,
-    "install_protect()\n\n"
-    "Install all protected packages."},
 
    // Actions
    {"resolve", PkgProblemResolverResolve, METH_VARARGS,

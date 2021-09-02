@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) 2010 Julian Andres Klode <jak@debian.org>
 #               2010 Michael Vogt <mvo@ubuntu.com>

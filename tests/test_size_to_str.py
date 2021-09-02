@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 __author__ = "Barry Warsaw <barry@ubuntu.com>, James Hunt, Michael Vogt"
 

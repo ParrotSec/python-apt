@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Builds on python2.X and python3
 # $Id: setup.py,v 1.2 2002/01/08 07:13:21 jgg Exp $
 import glob
@@ -6,32 +6,37 @@ import os
 import shutil
 import sys
 
-from distutils.core import setup, Extension
-from distutils.command.install import install
-from distutils import sysconfig
+from setuptools import setup, Extension
+from setuptools.command.install import install
 cmdclass = {}
 
 try:
     from DistUtilsExtra.command import build_extra, build_i18n
     from DistUtilsExtra.auto import clean_build_tree
+except ImportError:
+    print('W: [python%s] DistUtilsExtra import error.' % sys.version[:3])
+else:
     cmdclass['build'] = build_extra.build_extra
     cmdclass['build_i18n'] = build_i18n.build_i18n
     cmdclass['clean'] = clean_build_tree
-except ImportError:
-    print('W: [python%s] DistUtilsExtra import error.' % sys.version[:3])
 
 try:
     from sphinx.setup_command import BuildDoc
-    cmdclass['build_sphinx'] = BuildDoc
 except ImportError:
     print('W: [python%s] Sphinx import error.' % sys.version[:3])
+else:
+    cmdclass['build_sphinx'] = BuildDoc
 
 
 class InstallTypeinfo(install):
     def run(self):
         install.run(self)
         for pyi in glob.glob("typehinting/*.pyi"):
-            shutil.copy(pyi, self.install_purelib)
+            stubs = os.path.basename(pyi).split(".")[0] + "-stubs"
+            stubs = os.path.join(self.install_purelib, stubs)
+            if not os.path.exists(stubs):
+                os.makedirs(stubs)
+            shutil.copy(pyi, os.path.join(stubs, "__init__.pyi"))
 
 
 cmdclass['install'] = InstallTypeinfo
@@ -67,13 +72,15 @@ apt_pkg = Extension("apt_pkg", files, libraries=["apt-pkg"],
                     extra_compile_args=['-std=c++11', '-Wno-write-strings',
                                         '-DAPT_8_CLEANER_HEADERS',
                                         '-DAPT_9_CLEANER_HEADERS',
-                                        '-DAPT_10_CLEANER_HEADERS'])
+                                        '-DAPT_10_CLEANER_HEADERS',
+                                        '-DPY_SSIZE_T_CLEAN'])
 
 # The apt_inst module
 files = ["python/apt_instmodule.cc", "python/generic.cc",
          "python/arfile.cc", "python/tarfile.cc"]
-apt_inst = Extension("apt_inst", files, libraries=["apt-pkg", "apt-inst"],
-                     extra_compile_args=['-std=c++11', '-Wno-write-strings'])
+apt_inst = Extension("apt_inst", files, libraries=["apt-pkg"],
+                     extra_compile_args=['-std=c++11', '-Wno-write-strings',
+                                         '-DPY_SSIZE_T_CLEAN'])
 
 # Replace the leading _ that is used in the templates for translation
 if len(sys.argv) > 1 and sys.argv[1] == "build":
@@ -89,12 +96,6 @@ if len(sys.argv) > 1 and sys.argv[1] == "build":
     for template in glob.glob('data/templates/*.mirrors'):
         shutil.copy(template, os.path.join("build", template))
 
-# Remove the "-Wstrict-prototypes" compiler option, which isn't valid for C++.
-# See http://bugs.python.org/issue9031 and http://bugs.python.org/issue1222585
-cfg_vars = sysconfig.get_config_vars()
-for key, value in cfg_vars.items():
-    if type(value) == str:
-        cfg_vars[key] = value.replace("-Wstrict-prototypes", "")
 
 setup(name="python-apt",
       description="Python bindings for APT",
@@ -104,7 +105,7 @@ setup(name="python-apt",
       ext_modules=[apt_pkg, apt_inst],
       packages=['apt', 'apt.progress', 'aptsources'],
       package_data={
-          'apt': ["*.pyi"],
+          'apt': ["*.pyi", "py.typed"],
       },
       data_files=[('share/python-apt/templates',
                    glob.glob('build/data/templates/*.info')),
@@ -112,4 +113,5 @@ setup(name="python-apt",
                    glob.glob('data/templates/*.mirrors'))],
       cmdclass=cmdclass,
       license='GNU GPL',
-      platforms='posix')
+      platforms='posix',
+      )

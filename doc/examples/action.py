@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # LOW LEVEL example how to deal with the depcache
 #

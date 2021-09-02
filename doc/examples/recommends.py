@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import apt_pkg
 apt_pkg.init()
@@ -32,8 +32,8 @@ for package in cache.packages:
             getattr(wanted.setdefault(name, Wanted(name)),
                     attr).append(package.name)
 
-ks = wanted.keys()
+ks = list(wanted.keys())
 ks.sort()
 
 for want in ks:
-    print want, wanted[want].recommended, wanted[want].suggested
+    print(want, wanted[want].recommended, wanted[want].suggested)

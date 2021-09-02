@@ -1,6 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import unittest
+import warnings
 import apt_pkg
 
 import testcommon
@@ -11,6 +12,14 @@ class testHashes(testcommon.TestCase):
 
     DATA_PATH = "data/hashsums/hashsum_test.data"
     DATA_WITH_ZERO_PATH = "data/hashsums/hashsum_test_with_zero.data"
+
+    def setUp(self):
+        testcommon.TestCase.setUp(self)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+    def tearDown(self):
+        testcommon.TestCase.tearDown(self)
+        warnings.resetwarnings()
 
     def testMD5(self):
         # simple

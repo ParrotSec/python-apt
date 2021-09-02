@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import apt_pkg
 
@@ -13,10 +13,10 @@ pkg = cache["libimlib2"]
 cand = depcache.get_candidate_ver(pkg)
 for (f, i) in cand.file_list:
     index = sources.find_index(f)
-    print index
+    print(index)
     if index:
-        print index.size
-        print index.is_trusted
-        print index.exists
-        print index.Haspackages
-        print index.archive_uri("some/path")
+        print(index.size)
+        print(index.is_trusted)
+        print(index.exists)
+        print(index.Haspackages)
+        print(index.archive_uri("some/path"))

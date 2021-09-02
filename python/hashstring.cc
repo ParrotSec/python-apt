@@ -58,6 +58,18 @@ static PyObject *hashstring_get_hashtype(PyObject *self)
     return CppPyString(hash->HashType());
 }
 
+static PyObject *hashstring_get_usable(PyObject *self)
+{
+    const HashString *hash = GetCpp<HashString*>(self);
+    return PyBool_FromLong(hash->usable());
+}
+
+static PyObject *hashstring_get_hashvalue(PyObject *self)
+{
+    const HashString *hash = GetCpp<HashString*>(self);
+    return CppPyString(hash->HashValue());
+}
+
 static char *hashstring_verify_file_doc =
     "verify_file(filename: str) -> bool\n\n"
     "Verify that the file indicated by filename matches the hash.";
@@ -80,8 +92,44 @@ static PyMethodDef hashstring_methods[] = {
 static PyGetSetDef hashstring_getset[] = {
     {"hashtype",(getter)hashstring_get_hashtype,0,
      "The type of the hash, as a string (possible: MD5Sum,SHA1,SHA256)."},
+    {"hashvalue",(getter)hashstring_get_hashvalue,0,
+     "The value of the hash, as a hexadecimal string\n"
+     "\n"
+     ".. versionadded:: 1.9.0"},
+    {"usable",(getter)hashstring_get_usable,0,
+     "True if the hashstring is a trusted hash type."},
     {NULL}
 };
+
+static PyObject *hashstring_richcompare(PyObject *obj1, PyObject *obj2, int op)
+{
+    if (!PyObject_TypeCheck(obj1, &PyHashString_Type))
+        return PyErr_SetString(PyExc_TypeError, "Expected HashString"), nullptr;
+    if (!PyObject_TypeCheck(obj2, &PyHashString_Type))
+        return PyErr_SetString(PyExc_TypeError, "Expected HashString"), nullptr;
+
+    const HashString *a = GetCpp<HashString*>(obj1);
+    const HashString *b = GetCpp<HashString*>(obj2);
+    PyObject *result = Py_False;
+
+    switch (op) {
+    case Py_LT:
+    case Py_GT:
+        result = Py_False;
+        break;
+    case Py_LE:
+    case Py_GE:
+    case Py_EQ:
+        result = *a == *b ? Py_True : Py_False;
+        break;
+    case Py_NE:
+        result = *a != *b ? Py_True : Py_False;
+        break;
+    }
+
+    Py_INCREF(result);
+    return result;
+ }
 
 static char *hashstring_doc =
     "HashString(type, hash) OR HashString('type:hash')\n\n"
@@ -116,7 +164,7 @@ PyTypeObject PyHashString_Type = {
     hashstring_doc,                    // tp_doc
     0,                                 // tp_traverse
     0,                                 // tp_clear
-    0,                                 // tp_richcompare
+    hashstring_richcompare,            // tp_richcompare
     0,                                 // tp_weaklistoffset
     0,                                 // tp_iter
     0,                                 // tp_iternext

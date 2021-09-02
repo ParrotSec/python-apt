@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # some example for apt_inst
 
 import apt_pkg
@@ -9,41 +9,42 @@ import os.path
 
 def Callback(member, data):
     """ callback for debExtract """
-    print "'%s','%s',%u,%u,%u,%u,%u,%u,%u" \
+    print("'%s','%s',%u,%u,%u,%u,%u,%u,%u"
           % (member.name, member.linkname, member.mode, member.uid,
-             member.gid, member.size, member.mtime, member.major, member.minor)
+             member.gid, member.size, member.mtime, member.major,
+             member.minor))
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "need filename argumnet"
+        print("need filename argumnet")
         sys.exit(1)
     file = sys.argv[1]
 
-    print "Working on: %s" % file
-    print "Displaying data.tar.gz:"
+    print("Working on: %s" % file)
+    print("Displaying data.tar.gz:")
     apt_inst.DebFile(open(file)).data.go(Callback)
 
-    print "Now extracting the control file:"
+    print("Now extracting the control file:")
     control = apt_inst.DebFile(open(file)).control.extractdata("control")
     sections = apt_pkg.TagSection(control)
 
-    print "Maintainer is: "
-    print sections["Maintainer"]
+    print("Maintainer is: ")
+    print(sections["Maintainer"])
 
-    print
-    print "DependsOn: "
+    print()
+    print("DependsOn: ")
     depends = sections["Depends"]
-    print apt_pkg.parse_depends(depends)
+    print(apt_pkg.parse_depends(depends))
 
-    print "extracting archive"
+    print("extracting archive")
     dir = "/tmp/deb"
     os.mkdir(dir)
     apt_inst.DebFile(open(file)).data.extractall(dir)
 
     def visit(arg, dirname, names):
-        print "%s/" % dirname
+        print("%s/" % dirname)
         for file in names:
-            print "\t%s" % file
+            print("\t%s" % file)
 
     os.path.walk(dir, visit, None)

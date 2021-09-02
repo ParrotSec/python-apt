@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Copyright (C) 2009 Julian Andres Klode <jak@debian.org>
 #
 # Copying and distribution of this file, with or without modification,
@@ -48,8 +48,11 @@ if __name__ == '__main__':
     if dirname:
         os.chdir(dirname)
     library_dir = get_library_dir()
-    sys.stdout.write("Using library_dir: '%s'" % library_dir)
-    if library_dir:
+    if "pybuild" in os.getenv("PYTHONPATH", ""):
+        # pybuild already supplied us with a path to check for
+        sys.stdout.write("Using pybuild supplied build dir\n")
+    elif library_dir:
+        sys.stdout.write("Using library_dir: '%s'\n" % library_dir)
         sys.path.insert(0, os.path.abspath(library_dir))
 
     for path in os.listdir('.'):

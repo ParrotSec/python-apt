@@ -21,19 +21,10 @@ from __future__ import print_function
 import datetime
 import os
 
-try:
-    from typing import Optional, Tuple
-    Optional  # pyflakes
-    Tuple  # pyflakes
-except ImportError:
-    pass
+from typing import Optional, Tuple
 
 import apt
 import apt_pkg
-
-apt  # pyflakes
-datetime  # pyflakes
-os  # pyflakes
 
 
 def get_maintenance_end_date(release_date, m_months):

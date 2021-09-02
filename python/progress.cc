@@ -13,6 +13,7 @@
 #include <utility>
 #include <apt-pkg/acquire-item.h>
 #include <apt-pkg/acquire-worker.h>
+#include <apt-pkg/install-progress.h>
 #include "progress.h"
 #include "generic.h"
 #include "apt_pkgmodule.h"
@@ -374,9 +375,12 @@ pkgPackageManager::OrderResult PyInstallProgress::Run(pkgPackageManager *pm)
       if(v) {
 	 int fd = PyObject_AsFileDescriptor(v);
          std::cout << "got fd: " << fd << std::endl;
-	 res = pm->DoInstall(fd);
+
+	 APT::Progress::PackageManagerProgressFd progress(fd);
+	 res = pm->DoInstall(&progress);
       } else {
-	 res = pm->DoInstall();
+	 APT::Progress::PackageManagerProgressFd progress(-1);
+	 res = pm->DoInstall(&progress);
       }
       //std::cout << "res: " << res << std::endl;
       _exit(res);

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2010 Michael Vogt <mvo@ubuntu.com>
@@ -156,6 +156,63 @@ class TestTagFile(testcommon.TestCase):
             tagfile.step()
             self.assertEqual(
                 value.encode("ISO-8859-1"), tagfile.section["Maintainer"])
+
+
+class TestTagSection(testcommon.TestCase):
+    """ test the apt_pkg.TagFile """
+
+    def setUp(self):
+        testcommon.TestCase.setUp(self)
+        self.temp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
+
+    def test_write(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            ts.write(outfile, [], [])
+        with io.open(outpath) as outfile:
+            self.assertEqual(outfile.read(), "a: 1\nb: 2\nc: 3\n")
+
+    def test_write_order(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            ts.write(outfile, ["a", "c", "b"], [])
+        with io.open(outpath) as outfile:
+            self.assertEqual(outfile.read(), "a: 1\nc: 3\nb: 2\n")
+
+    def test_write_invalid_order(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            self.assertRaises(TypeError, ts.write, outfile, ["a", 1, "b"], [])
+
+    def test_write_remove(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            ts.write(outfile, ["a", "c", "b"], [apt_pkg.TagRemove("a")])
+        with io.open(outpath) as outfile:
+            self.assertEqual(outfile.read(), "c: 3\nb: 2\n")
+
+    def test_write_rewrite(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            ts.write(outfile, ["a", "c", "b"], [apt_pkg.TagRewrite("a", "AA")])
+        with io.open(outpath) as outfile:
+            self.assertEqual(outfile.read(), u"a: AA\nc: 3\nb: 2\n")
+
+    def test_write_rename(self):
+        ts = apt_pkg.TagSection("a: 1\nb: 2\nc: 3\n")
+        outpath = os.path.join(self.temp_dir, "test")
+        with io.open(outpath, "w") as outfile:
+            ts.write(outfile, ["a", "z", "b"], [apt_pkg.TagRename("c", "z")])
+        with io.open(outpath) as outfile:
+            self.assertEqual(outfile.read(), "a: 1\nz: 3\nb: 2\n")
 
 
 if __name__ == "__main__":

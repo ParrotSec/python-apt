@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import apt
 import sys
@@ -10,7 +10,7 @@ for pkg in cache:
     if candver is None:
         continue
     dependslist = candver.depends_list
-    for dep in dependslist.keys():
+    for dep in list(dependslist.keys()):
         # get the list of each dependency object
         for depVerList in dependslist[dep]:
             for z in depVerList:
@@ -23,14 +23,15 @@ for pkg in cache:
 main = set()
 universe = set()
 for pkg in pkgs:
-    if "universe" in cache[pkg].section:
-        universe.add(cache[pkg].source_name)
+    cand = cache[pkg].candidate
+    if "universe" in cand.section:
+        universe.add(cand.source_name)
     else:
-        main.add(cache[pkg].source_name)
+        main.add(cand.source_name)
 
-print "main:"
-print "\n".join(main)
-print
+print("main:")
+print("\n".join(sorted(main)))
+print()
 
-print "universe:"
-print "\n".join(universe)
+print("universe:")
+print("\n".join(sorted(universe)))

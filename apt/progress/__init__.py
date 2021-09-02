@@ -25,11 +25,7 @@ for terminals, etc.
 
 from __future__ import print_function
 
-try:
-    from typing import Sequence
-    Sequence  # pylint
-except ImportError:
-    pass
+from typing import Sequence
 
 
 __all__ = []  # type: Sequence[str]

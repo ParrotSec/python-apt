@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # this is a example how to access the build dependencies of a package
 
 import apt_pkg
@@ -29,26 +29,26 @@ srcrecords = apt_pkg.SourceRecords()
 
 # base package that we use for build-depends calculation
 if len(sys.argv) < 2:
-    print "need a package name as argument"
+    print("need a package name as argument")
     sys.exit(1)
 try:
     pkg = base = cache[sys.argv[1]]
 except KeyError:
-    print "No package %s found" % sys.argv[1]
+    print("No package %s found" % sys.argv[1])
     sys.exit(1)
 all_build_depends = set()
 
 # get the build depdends for the package itself
 srcpkg_name = get_source_pkg(base, records, depcache)
-print "srcpkg_name: %s " % srcpkg_name
+print("srcpkg_name: %s " % srcpkg_name)
 if not srcpkg_name:
-    print "Can't find source package for '%s'" % pkg.mame
+    print("Can't find source package for '%s'" % pkg.mame)
 srcrec = srcrecords.lookup(srcpkg_name)
 if srcrec:
-    print "Files:"
-    print srcrecords.files
+    print("Files:")
+    print(srcrecords.files)
     bd = srcrecords.build_depends
-    print "build-depends of the package: %s " % bd
+    print("build-depends of the package: %s " % bd)
     for b in bd:
         all_build_depends.add(b[0])
 
@@ -58,7 +58,7 @@ for dep in depends["Depends"]:  # FIXME: do we need to consider PreDepends?
     pkg = dep[0].target_pkg
     srcpkg_name = get_source_pkg(pkg, records, depcache)
     if not srcpkg_name:
-        print "Can't find source package for '%s'" % pkg.name
+        print("Can't find source package for '%s'" % pkg.name)
         continue
     srcrec = srcrecords.lookup(srcpkg_name)
     if srcrec:
@@ -70,4 +70,4 @@ for dep in depends["Depends"]:  # FIXME: do we need to consider PreDepends?
             all_build_depends.add(b[0])
 
 
-print "\n".join(all_build_depends)
+print("\n".join(all_build_depends))

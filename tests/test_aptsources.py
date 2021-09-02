@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import unittest
 import os
@@ -88,6 +88,7 @@ class TestAptSources(testcommon.TestCase):
                     entry.dist == "edgy" and
                     "multiverse" in entry.comps):
                 found = True
+                break
         self.assertTrue(found)
 
         # add a new natty entry without architecture specification
@@ -102,6 +103,7 @@ class TestAptSources(testcommon.TestCase):
                     entry.architectures == [] and
                     "multiverse" in entry.comps):
                 found = True
+                break
         self.assertTrue(found)
 
         # Add universe to existing multi-arch line
@@ -116,6 +118,7 @@ class TestAptSources(testcommon.TestCase):
                    set(entry.architectures) == set(["amd64", "i386"]) and
                    set(entry.comps) == set(["main", "universe"])):
                 found = True
+                break
         self.assertTrue(found)
         # test to add something new: multiverse *and*
         # something that is already there
@@ -138,12 +141,120 @@ class TestAptSources(testcommon.TestCase):
         self.assertEqual(found_something, 1)
         self.assertEqual(found_universe, 1)
 
+    def testAddingWithComment(self):
+        apt_pkg.config.set("Dir::Etc::sourcelist", "data/aptsources/"
+                                                   "sources.list")
+        sources = aptsources.sourceslist.SourcesList(True, self.templates)
+
+        # test to add something that is already there (main); loses comment
+        before = copy.deepcopy(sources)
+        sources.add("deb", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["main"], comment="this will be lost")
+        self.assertTrue(sources.list == before.list)
+        for entry in sources:
+            self.assertEqual(entry.comment, "")
+
+        # test to add component to existing entry: multiverse; loses comment
+        sources.add("deb", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["multiverse"], comment="this will be lost")
+        for entry in sources:
+            self.assertEqual(entry.comment, "")
+
+        # test to add entirely new entry; retains comment
+        sources.add("deb-src", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["main"], comment="this will appear")
+        found = False
+        for entry in sources:
+            if (entry.type == "deb-src" and
+                    entry.uri == "http://de.archive.ubuntu.com/ubuntu/" and
+                    entry.dist == "edgy" and
+                    entry.comment == "this will appear" and
+                    "main" in entry.comps):
+                found = True
+                break
+        self.assertTrue(found)
+
+    def testInsertion(self):
+        apt_pkg.config.set("Dir::Etc::sourcelist", "data/aptsources/"
+                                                   "sources.list")
+        sources = aptsources.sourceslist.SourcesList(True, self.templates)
+
+        # test to insert something that is already there (universe); does not
+        # move existing entry (remains at index 2)
+        before = copy.deepcopy(sources)
+        sources.add("deb", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["universe"], pos=0)
+        self.assertTrue(sources.list == before.list)
+        entry = list(sources)[5]
+        self.assertTrue(
+            entry.type == "deb" and
+            entry.uri == "http://de.archive.ubuntu.com/ubuntu/" and
+            entry.dist == "edgy" and
+            "universe" in entry.comps)
+
+        # test add component to existing entry: multiverse; does not move
+        # entry to which it is appended (remains at index 0)
+        sources.add("deb", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["multiverse"], pos=2)
+        entry = list(sources)[1]
+        self.assertTrue(
+            entry.type == "deb" and
+            entry.uri == "http://de.archive.ubuntu.com/ubuntu/" and
+            entry.dist == "edgy" and
+            {"main", "multiverse"} <= set(entry.comps))
+
+        # test to add entirely new entry; inserted at 0
+        sources.add("deb-src", "http://de.archive.ubuntu.com/ubuntu/",
+                    "edgy",
+                    ["main"], pos=0)
+        entry = list(sources)[0]
+        self.assertTrue(
+            entry.type == "deb-src" and
+            entry.uri == "http://de.archive.ubuntu.com/ubuntu/" and
+            entry.dist == "edgy" and
+            "main" in entry.comps)
+
+    def testDuplication(self):
+        apt_pkg.config.set("Dir::Etc::sourcelist",
+                           "data/aptsources/sources.list.testDuplication")
+        sources = aptsources.sourceslist.SourcesList(True, self.templates)
+        test_url = "http://ppa.launchpad.net/me/myproject/ubuntu"
+        # test to add something that is already there (enabled)
+        before = copy.deepcopy(sources)
+        sources.add("deb", test_url, "xenial", ["main"])
+        self.assertTrue(sources.list == before.list)
+        # test to add something that is already there (disabled)
+        sources.add("# deb-src", test_url, "xenial", ["main"])
+        self.assertTrue(sources.list == before.list)
+        # test to enable something that is already there
+        sources.add("deb-src", test_url, "xenial", ["main"])
+        found = False
+        self.assertEqual(len(sources.list), 2)
+        for entry in sources:
+            if (entry.type == "deb-src" and
+                    not entry.disabled and
+                    entry.uri == test_url and
+                    entry.dist == "xenial" and
+                    entry.architectures == [] and
+                    entry.comps == ["main"]):
+                found = True
+                break
+        self.assertTrue(found)
+
     def testMatcher(self):
         """aptsources: Test matcher"""
         apt_pkg.config.set("Dir::Etc::sourcelist", "data/aptsources/"
                            "sources.list.testDistribution")
         sources = aptsources.sourceslist.SourcesList(True, self.templates)
-        distro = aptsources.distro.get_distro(id="Ubuntu")
+        distro = aptsources.distro.get_distro(id="Ubuntu",
+                                              codename="bionic",
+                                              description="Ubuntu 18.04 LTS",
+                                              release="18.04")
         distro.get_sources(sources)
         # test if all suits of the current distro were detected correctly
         for s in sources:
@@ -209,7 +320,10 @@ class TestAptSources(testcommon.TestCase):
         apt_pkg.config.set("Dir::Etc::sourcelist", "data/aptsources/"
                            "sources.list.testDistribution")
         sources = aptsources.sourceslist.SourcesList(True, self.templates)
-        distro = aptsources.distro.get_distro(id="Ubuntu")
+        distro = aptsources.distro.get_distro(id="Ubuntu",
+                                              codename="bionic",
+                                              description="Ubuntu 18.04 LTS",
+                                              release="18.04")
         distro.get_sources(sources)
         # test if all suits of the current distro were detected correctly
         dist_templates = set()
@@ -284,6 +398,30 @@ class TestAptSources(testcommon.TestCase):
                     ["main"])
         self.assertEqual(disabled, enabled)
         self.assertFalse(disabled.disabled)
+
+    def test_duplicate_uri_with_trailing_slash(self):
+        """Test replacing entry with same uri except trailing slash"""
+        apt_pkg.config.set("Dir::Etc::sourcelist", "data/aptsources/"
+                           "sources.list")
+        sources = aptsources.sourceslist.SourcesList(True, self.templates)
+        line_wslash = "deb http://rslash.ubuntu.com/ubuntu/ precise main"
+        line_woslash = "deb http://rslash.ubuntu.com/ubuntu precise main"
+        entry_wslash = aptsources.sourceslist.SourceEntry(line_wslash)
+        entry_woslash = aptsources.sourceslist.SourceEntry(line_woslash)
+        self.assertEqual(entry_wslash, entry_woslash)
+        count = len(sources.list)
+        sourceslist_wslash = sources.add(entry_wslash.type,
+                                         entry_wslash.uri,
+                                         entry_wslash.dist,
+                                         entry_wslash.comps)
+        self.assertEqual(count + 1, len(sources.list))
+        count = len(sources.list)
+        sourceslist_woslash = sources.add(entry_woslash.type,
+                                          entry_woslash.uri,
+                                          entry_woslash.dist,
+                                          entry_woslash.comps)
+        self.assertEqual(count, len(sources.list))
+        self.assertEqual(sourceslist_wslash, sourceslist_woslash)
 
 
 if __name__ == "__main__":

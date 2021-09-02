@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Print out the URIs of all indexes files.
 
 This behaves somewhat like apt-get --print-uris update."""

@@ -19,9 +19,7 @@
 #include <apt-pkg/deblistparser.h>
 #include <apt-pkg/pkgcache.h>
 #include <apt-pkg/tagfile.h>
-#include <apt-pkg/md5.h>
-#include <apt-pkg/sha1.h>
-#include <apt-pkg/sha2.h>
+#include <apt-pkg/hashes.h>
 #include <apt-pkg/init.h>
 #include <apt-pkg/pkgsystem.h>
 #include <apt-pkg/orderlist.h>
@@ -84,8 +82,8 @@ static PyObject *VersionCompare(PyObject *Self,PyObject *Args)
 {
    char *A;
    char *B;
-   int LenA;
-   int LenB;
+   Py_ssize_t LenA;
+   Py_ssize_t LenB;
 
    if (PyArg_ParseTuple(Args,"s#s#",&A,&LenA,&B,&LenB) == 0)
       return 0;
@@ -188,7 +186,7 @@ static PyObject *RealParseDepends(PyObject *Self,PyObject *Args,PyObject *Kwds,
 
    const char *Start;
    const char *Stop;
-   int Len;
+   Py_ssize_t Len;
    const char *Arch = NULL;
    char *kwlist[] = {"s", "strip_multi_arch", "architecture", 0};
 
@@ -264,22 +262,26 @@ static PyObject *md5sum(PyObject *Self,PyObject *Args)
    if (PyArg_ParseTuple(Args,"O",&Obj) == 0)
       return 0;
 
+   if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "apt_pkg.md5sum is deprecated, use apt_pkg.Hashes", 1) == -1)
+        return NULL;
+
    // Digest of a string.
    if (PyBytes_Check(Obj) != 0)
    {
       char *s;
       Py_ssize_t len;
-      MD5Summation Sum;
+      Hashes Sum(Hashes::MD5SUM);
       PyBytes_AsStringAndSize(Obj, &s, &len);
       Sum.Add((const unsigned char*)s, len);
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::MD5SUM).HashValue());
    }
 
    // Digest of a file
    int Fd = PyObject_AsFileDescriptor(Obj);
    if (Fd != -1)
    {
-      MD5Summation Sum;
+      Hashes Sum(Hashes::MD5SUM);
       struct stat St;
       if (fstat(Fd,&St) != 0 ||
 	  Sum.AddFD(Fd,St.st_size) == false)
@@ -288,7 +290,7 @@ static PyObject *md5sum(PyObject *Self,PyObject *Args)
 	 return 0;
       }
 
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::MD5SUM).HashValue());
    }
 
    PyErr_SetString(PyExc_TypeError,"Only understand strings and files");
@@ -309,22 +311,26 @@ static PyObject *sha1sum(PyObject *Self,PyObject *Args)
    if (PyArg_ParseTuple(Args,"O",&Obj) == 0)
       return 0;
 
+   if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "apt_pkg.sha1sum is deprecated, use apt_pkg.Hashes", 1) == -1)
+        return NULL;
+
    // Digest of a string.
    if (PyBytes_Check(Obj) != 0)
    {
       char *s;
       Py_ssize_t len;
-      SHA1Summation Sum;
+      Hashes Sum(Hashes::SHA1SUM);
       PyBytes_AsStringAndSize(Obj, &s, &len);
       Sum.Add((const unsigned char*)s, len);
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA1SUM).HashValue());
    }
 
    // Digest of a file
    int Fd = PyObject_AsFileDescriptor(Obj);
    if (Fd != -1)
    {
-      SHA1Summation Sum;
+      Hashes Sum(Hashes::SHA1SUM);
       struct stat St;
       if (fstat(Fd,&St) != 0 ||
 	  Sum.AddFD(Fd,St.st_size) == false)
@@ -333,7 +339,7 @@ static PyObject *sha1sum(PyObject *Self,PyObject *Args)
 	 return 0;
       }
 
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA1SUM).HashValue());
    }
 
    PyErr_SetString(PyExc_TypeError,"Only understand strings and files");
@@ -354,22 +360,26 @@ static PyObject *sha256sum(PyObject *Self,PyObject *Args)
    if (PyArg_ParseTuple(Args,"O",&Obj) == 0)
       return 0;
 
+   if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "apt_pkg.sha256sum is deprecated, use apt_pkg.Hashes", 1) == -1)
+        return NULL;
+
    // Digest of a string.
    if (PyBytes_Check(Obj) != 0)
    {
       char *s;
       Py_ssize_t len;
-      SHA256Summation Sum;
+      Hashes Sum(Hashes::SHA256SUM);
       PyBytes_AsStringAndSize(Obj, &s, &len);
       Sum.Add((const unsigned char*)s, len);
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA256SUM).HashValue());
    }
 
    // Digest of a file
    int Fd = PyObject_AsFileDescriptor(Obj);
    if (Fd != -1)
    {
-      SHA256Summation Sum;
+      Hashes Sum(Hashes::SHA256SUM);
       struct stat St;
       if (fstat(Fd,&St) != 0 ||
 	  Sum.AddFD(Fd,St.st_size) == false)
@@ -378,7 +388,7 @@ static PyObject *sha256sum(PyObject *Self,PyObject *Args)
 	 return 0;
       }
 
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA256SUM).HashValue());
    }
 
    PyErr_SetString(PyExc_TypeError,"Only understand strings and files");
@@ -399,22 +409,26 @@ static PyObject *sha512sum(PyObject *Self,PyObject *Args)
    if (PyArg_ParseTuple(Args,"O",&Obj) == 0)
       return 0;
 
+   if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "apt_pkg.sha512sum is deprecated, use apt_pkg.Hashes", 1) == -1)
+        return NULL;
+
    // Digest of a string.
    if (PyBytes_Check(Obj) != 0)
    {
       char *s;
       Py_ssize_t len;
-      SHA512Summation Sum;
+      Hashes Sum(Hashes::SHA512SUM);
       PyBytes_AsStringAndSize(Obj, &s, &len);
       Sum.Add((const unsigned char*)s, len);
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA512SUM).HashValue());
    }
 
    // Digest of a file
    int Fd = PyObject_AsFileDescriptor(Obj);
    if (Fd != -1)
    {
-      SHA512Summation Sum;
+      Hashes Sum(Hashes::SHA512SUM);
       struct stat St;
       if (fstat(Fd,&St) != 0 ||
 	  Sum.AddFD(Fd,St.st_size) == false)
@@ -423,7 +437,7 @@ static PyObject *sha512sum(PyObject *Self,PyObject *Args)
 	 return 0;
       }
 
-      return CppPyString(Sum.Result().Value());
+      return CppPyString(Sum.GetHashString(Hashes::SHA512SUM).HashValue());
    }
 
    PyErr_SetString(PyExc_TypeError,"Only understand strings and files");
@@ -643,7 +657,6 @@ static PyMethodDef methods[] =
     "and only does translations after setlocale() has been called."},
 
    // Tag File
-   {"rewrite_section",RewriteSection,METH_VARARGS,doc_RewriteSection},
 
    {"open_maybe_clear_signed_file",PyOpenMaybeClearSignedFile,METH_VARARGS,
     doc_OpenMaybeClearSignedFile},

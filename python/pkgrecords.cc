@@ -34,7 +34,7 @@ static PyObject *PkgRecordsLookup(PyObject *Self,PyObject *Args)
    pkgCache::PkgFileIterator &PkgF = GetCpp<pkgCache::PkgFileIterator>(PkgFObj);
    pkgCache *Cache = PkgF.Cache();
    if (Cache->DataEnd() <= Cache->VerFileP + Index + 1 ||
-       Cache->VerFileP[Index].File != PkgF.Index())
+       Cache->VerFileP[Index].File != PkgF.MapPointer())
    {
       PyErr_SetNone(PyExc_IndexError);
       return 0;
@@ -123,11 +123,11 @@ static PyObject *PkgRecordsGetMaintainer(PyObject *Self,void*) {
 }
 static PyObject *PkgRecordsGetShortDesc(PyObject *Self,void*) {
    PkgRecordsStruct &Struct = GetStruct(Self,"ShortDesc");
-   return (Struct.Last != 0) ? CppPyString(Struct.Last->ShortDesc()) : 0;
+   return (Struct.Last != 0) ? CppPyLocaleString(Struct.Last->ShortDesc()) : 0;
 }
 static PyObject *PkgRecordsGetLongDesc(PyObject *Self,void*) {
    PkgRecordsStruct &Struct = GetStruct(Self,"LongDesc");
-   return (Struct.Last != 0) ? CppPyString(Struct.Last->LongDesc()) : 0;
+   return (Struct.Last != 0) ? CppPyLocaleString(Struct.Last->LongDesc()) : 0;
 }
 static PyObject *PkgRecordsGetName(PyObject *Self,void*) {
    PkgRecordsStruct &Struct = GetStruct(Self,"Name");

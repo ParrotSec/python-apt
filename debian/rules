@@ -8,51 +8,43 @@ export TIME:=$(shell $(DATE_CMD) --date="$(DATETIME)" "+%H:%M:%S")
 export DEB_CFLAGS_MAINT_APPEND=-Wno-write-strings \
                                -DDATE=\""$(DATE)"\" \
                                -DTIME=\""$(TIME)"\"
-export PATH := $(CURDIR)/utils:$(PATH)
-export pyversions := $(CURDIR)/utils/pyversions
-export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all
+export PYBUILD_NAME=apt
+
+BUILDDIR3 := $(shell pybuild --print build_dir --interpreter python3)
 
 %:
-	dh $@ --with python2,python3,sphinxdoc
+	dh $@ --with python3,sphinxdoc --buildsystem=pybuild
 
 override_dh_auto_build:
 	dh_auto_build
+	PYTHONPATH=$(BUILDDIR3) python3 setup.py build_sphinx
 
-override_dh_install:
-	dh_movefiles
-	dh_install
-
-override_dh_sphinxdoc:
-	set -e; if [ -z $(filter -a,$(DH_INTERNAL_OPTIONS)) ]; then \
-		dh_sphinxdoc; \
-	fi
+# this is nasty. instead of installing the files to one dir, overriding
+# common ones, and then us picking out the files we want, we have to move some
+# files from python3-apt to python-apt-common and then delete it from other
+# packages.
+override_dh_auto_install:
+	dh_auto_install
+	mkdir -p debian/python-apt-common/usr/share/
+	mv debian/python3-apt/usr/share/locale debian/python-apt-common/usr/share/
+	mv debian/python3-apt/usr/share/python-apt debian/python-apt-common/usr/share/
+	rm -r debian/python3-*/usr/share/locale
+	rm -r debian/python3-*/usr/share/python-apt
+	rmdir debian/python3-*/usr/share
 
 override_dh_installdocs:
-	set -e; if [ -z $(filter -a,$(DH_INTERNAL_OPTIONS)) ]; then \
-		python3 setup.py build_sphinx; \
-		dh_installdirs -ppython-apt-doc usr/share/doc/python-apt; \
-	fi
-	dh_installdirs -ppython-apt-dev usr/share/doc/python-apt
-	dh_installdocs -p python-apt -p python-apt-dbg --link-doc=python-apt
 	dh_installdocs -p python3-apt -p python3-apt-dbg --link-doc=python3-apt
 	dh_installdocs --remaining-packages
 
 override_dh_strip:
-	dh_strip -p python-apt --dbg-package=python-apt-dbg
 	dh_strip -p python3-apt --dbg-package=python3-apt-dbg
 	
 override_dh_compress:
 	dh_compress -X.js -X_static/* -X _sources/* -X_sources/*/* -X.inv
 
 # We ignore failures on hurd, since its locking is broken
+override_dh_auto_test: export PYBUILD_SYSTEM=custom
+override_dh_auto_test: export PYBUILD_TEST_ARGS=env PYTHONPATH={build_dir} {interpreter} tests/test_all.py
 override_dh_auto_test:
-ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
-	set -e; for python in $(shell $(pyversions) -r); do \
-		$$python tests/test_all.py -q || [ "$(DEB_BUILD_ARCH_OS)" = "hurd" ]; \
-	done;
-else
-	@echo "** tests disabled"
-endif
-
-override_dh_python2:
-	dh_python2 -N python-apt-common
+	dh_auto_test || [ "$(DEB_BUILD_ARCH_OS)" = "hurd" ];
